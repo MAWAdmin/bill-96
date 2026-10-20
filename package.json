@@ -1,0 +1,37 @@
+{
+  "name": "bill96-validation",
+  "version": "1.0.0",
+  "description": "Bill 96 (Quebec French language) website checker with French translation review queue",
+  "scripts": {
+    "dev": "next dev -p 3000",
+    "build": "next build",
+    "start": "next start -p 3000",
+    "typecheck": "tsc --noEmit",
+    "check": "tsx scripts/check.ts",
+    "test": "playwright test -c playwright.unit.config.ts",
+    "test:e2e": "playwright test -c playwright.config.ts",
+    "test:all": "npm test && npm run test:e2e",
+    "fixtures": "node tests/fixtures/server.mjs"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "@anthropic-ai/sdk": "0.131.0",
+    "@electric-sql/pglite": "0.5.8",
+    "next": "15.5.26",
+    "pg": "8.23.0",
+    "playwright": "1.63.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "server-only": "0.0.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@types/node": "22.20.4",
+    "@types/pg": "8.23.1",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "tsx": "4.20.6",
+    "typescript": "5.9.3"
+  },
+  "private": true
+}
