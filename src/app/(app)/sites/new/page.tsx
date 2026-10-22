@@ -14,6 +14,7 @@ export default function NewSite() {
           <div className="field">
             <label htmlFor="name">Name</label>
             <input id="name" name="name" type="text" placeholder="My Store" required autoFocus />
+            <div className="hint">Your business name. We don&apos;t count it as English text, but if it is in English we&apos;ll remind you that&apos;s only allowed for a registered trademark.</div>
           </div>
           <div className="field">
             <label htmlFor="base_url">Website URL</label>

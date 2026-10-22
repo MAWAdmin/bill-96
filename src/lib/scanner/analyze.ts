@@ -1,5 +1,5 @@
 import type { Extraction, RawBlock } from "./extract";
-import { detectLanguage, type Lang } from "./language";
+import { brandStripper, detectLanguage, type Lang } from "./language";
 import type { Block, ContentLanguage, Issue, PageMetrics, TranslationCandidate } from "./types";
 
 /**
@@ -29,7 +29,7 @@ export function prominenceOf(b: RawBlock): number {
   );
 }
 
-export function classifyBlocks(raw: RawBlock[]): Block[] {
+export function classifyBlocks(raw: RawBlock[], stripBrands: (text: string) => string = (t) => t): Block[] {
   return raw.map((b) => ({
     text: b.text,
     kind: b.kind,
@@ -39,7 +39,7 @@ export function classifyBlocks(raw: RawBlock[]): Block[] {
     fontWeight: b.fontWeight,
     inViewport: b.inViewport,
     selector: b.selector,
-    lang: detectLanguage(b.text).lang,
+    lang: detectLanguage(stripBrands(b.text)).lang,
     prominence: prominenceOf(b),
   }));
 }
@@ -105,9 +105,11 @@ export interface PageAnalysis {
 
 /**
  * @param hasFrenchAlternate whether hreflang points to a French version of this page
+ * @param brands business/brand names that may stay in English (the page's own
+ *   declared site name is always added)
  */
-export function analyzePage(ex: Extraction, hasFrenchAlternate: boolean): PageAnalysis {
-  const blocks = classifyBlocks(ex.blocks);
+export function analyzePage(ex: Extraction, hasFrenchAlternate: boolean, brands: string[] = []): PageAnalysis {
+  const blocks = classifyBlocks(ex.blocks, brandStripper([...brands, ex.siteName]));
   const metrics = computeMetrics(blocks, ex.truncated);
   const language = contentLanguage(metrics);
   const htmlLang = ex.htmlLang.toLowerCase();

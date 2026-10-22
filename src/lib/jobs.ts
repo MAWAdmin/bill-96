@@ -6,6 +6,7 @@ import { json, query, queryOne } from "./db";
 import { sha256 } from "./crypto";
 import { discoverUrls } from "./scanner/discover";
 import { frenchAlternate, normalizeUrl } from "./scanner/hreflang";
+import { glossaryBrands } from "./scanner/language";
 import { scanPage, type PageResult } from "./scanner/scanPage";
 import { assertScannableUrl } from "./net";
 import { loadReadiness } from "./results";
@@ -90,6 +91,8 @@ async function runScan(scanId: string) {
   fs.mkdirSync(SCREENSHOT_DIR, { recursive: true });
 
   const reciprocityCache = new Map<string, Promise<any>>();
+  // The business name and glossary brand names never count as English.
+  const brands = [site.name, ...glossaryBrands(site.glossary)];
   let next = 0;
   // English pages that link a French version get that French page checked
   // right after them, so every page is judged on its French side. Twins
@@ -110,7 +113,7 @@ async function runScan(scanId: string) {
     while (next < urls.length) {
       if (await isCancelled(scanId)) return;
       const url = urls[next++];
-      const result = await scanPage(url, { reciprocityCache });
+      const result = await scanPage(url, { reciprocityCache, brands });
       if (result.skipped) {
         await query(`UPDATE scans SET pages_total = pages_total - 1 WHERE id = $1`, [scanId]);
         continue;
@@ -150,8 +153,8 @@ function storedBlocks(r: PageResult) {
 
 async function savePage(scanId: string, site: SiteRow, r: PageResult) {
   const page = (await queryOne<{ id: string }>(
-    `INSERT INTO pages (scan_id, url, final_url, http_status, title, html_lang, page_language, score, metrics, hreflang, blocks, console_errors, error)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10::jsonb,$11::jsonb,$12::jsonb,$13) RETURNING id`,
+    `INSERT INTO pages (scan_id, url, final_url, http_status, title, html_lang, page_language, score, metrics, hreflang, blocks, console_errors, error, site_name)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10::jsonb,$11::jsonb,$12::jsonb,$13,$14) RETURNING id`,
     [
       scanId,
       r.url,
@@ -166,6 +169,7 @@ async function savePage(scanId: string, site: SiteRow, r: PageResult) {
       json(storedBlocks(r)),
       json(r.consoleErrors),
       r.error,
+      r.siteName,
     ]
   ))!;
 

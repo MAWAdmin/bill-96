@@ -92,3 +92,62 @@ function decide(fr: number, en: number): Lang {
   // Short strings with a split signal are "mixed" only when both sides are real.
   return fr >= 1 && en >= 1 ? "mixed" : frShare > 0.5 ? "fr" : "en";
 }
+
+/** True for a single word that is in either word list ("shop", "boutique"…). */
+function isCommonWord(term: string): boolean {
+  const w = term.toLowerCase();
+  return !/\s/.test(w) && (EN_WORDS.has(w) || FR_WORDS.has(w));
+}
+
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/**
+ * Business, brand and product names may stay in any language, so they are
+ * blanked out before a string is classified. Names shorter than 3 letters, or
+ * a single everyday word ("Shop"), are not removed: that would hide real text.
+ */
+export function brandStripper(terms: (string | null | undefined)[]): (text: string) => string {
+  const usable = [...new Set(terms.map((t) => (t ?? "").normalize("NFC").trim()).filter((t) => t.length >= 3 && !isCommonWord(t)))].sort(
+    (a, b) => b.length - a.length
+  );
+  if (!usable.length) return (text) => text;
+  const re = new RegExp(`(?<![\\p{L}\\p{N}])(?:${usable.map(escapeRe).join("|")})(?![\\p{L}\\p{N}])`, "giu");
+  return (text) => text.normalize("NFC").replace(re, " ");
+}
+
+/** Bare terms in a site glossary (lines without "=>") are brand or product names; "(…)" notes are dropped. */
+export function glossaryBrands(glossary: string | null | undefined): string[] {
+  return (glossary ?? "")
+    .split(/\r?\n/)
+    .filter((line) => line.trim() && !line.includes("=>"))
+    .map((line) => line.replace(/\(.*?\)/g, "").trim())
+    .filter(Boolean);
+}
+
+export interface EnglishName {
+  name: string;
+  /** Everyday English words in the name ("shop"), which may need French. */
+  genericWords: string[];
+}
+
+/**
+ * Business and brand names that read as English. They aren't counted as
+ * untranslated text, but a name in another language is allowed only if it is
+ * a registered trademark, so the owner gets one reminder per name. Names in
+ * `confirmed` (glossary brands the owner vouches for) are left out.
+ */
+export function englishNames(names: (string | null | undefined)[], confirmed: string[] = []): EnglishName[] {
+  const skip = new Set(confirmed.map((c) => c.normalize("NFC").trim().toLowerCase()));
+  const seen = new Set<string>();
+  const out: EnglishName[] = [];
+  for (const raw of names) {
+    const name = (raw ?? "").normalize("NFC").trim();
+    const key = name.toLowerCase();
+    if (!name || seen.has(key) || skip.has(key)) continue;
+    seen.add(key);
+    const lang = detectLanguage(name).lang;
+    const genericWords = [...new Set(tokenize(name).filter((w) => EN_WORDS.has(w) && !FR_WORDS.has(w)))];
+    if (lang === "en" || lang === "mixed" || genericWords.length) out.push({ name, genericWords });
+  }
+  return out;
+}

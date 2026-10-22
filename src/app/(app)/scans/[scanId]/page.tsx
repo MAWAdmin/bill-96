@@ -9,6 +9,7 @@ import { cancelScan, startScan } from "@/app/actions";
 import { AutoRefresh, CheckNowButton, SubmitButton } from "@/components/forms";
 import { Delta, Disclaimer, fmtDate, PairRow, plural, ReadinessRing, readinessHeadline, SeverityBadge } from "@/components/ui";
 import { ADD_FRENCH_HINT, ISSUE_LABELS } from "@/lib/issueLabels";
+import { englishNames, glossaryBrands } from "@/lib/scanner/language";
 import { SEVERITY_ORDER } from "@/lib/scanner/types";
 
 interface Todo {
@@ -24,9 +25,9 @@ export default async function ScanPage({ params }: { params: Promise<{ scanId: s
   const user = await requireUser();
   const scan = await loadScan(user.id, scanId);
   const active = scan.status === "running" || scan.status === "queued";
-  const [r, site, prev, open, approved, technical] = await Promise.all([
+  const [r, site, prev, open, approved, technical, declared] = await Promise.all([
     loadReadiness(scan.id),
-    queryOne<{ platform: string }>(`SELECT platform FROM sites WHERE id = $1`, [scan.site_id]),
+    queryOne<{ platform: string; name: string; glossary: string }>(`SELECT platform, name, glossary FROM sites WHERE id = $1`, [scan.site_id]),
     queryOne<{ created_at: Date; summary: any }>(
       `SELECT created_at, summary FROM scans WHERE site_id = $1 AND status = 'completed' AND created_at < $2
        ORDER BY created_at DESC LIMIT 1`,
@@ -35,6 +36,7 @@ export default async function ScanPage({ params }: { params: Promise<{ scanId: s
     queryOne<{ n: string }>(`SELECT count(*) AS n FROM translation_items WHERE site_id = $1 AND status IN ('pending','draft')`, [scan.site_id]),
     queryOne<{ n: string }>(`SELECT count(*) AS n FROM translation_items WHERE site_id = $1 AND status = 'approved'`, [scan.site_id]),
     query<{ code: string; n: string }>(`SELECT code, count(DISTINCT page_id) AS n FROM issues WHERE scan_id = $1 GROUP BY code`, [scan.id]),
+    query<{ site_name: string }>(`SELECT DISTINCT site_name FROM pages WHERE scan_id = $1 AND site_name IS NOT NULL`, [scan.id]),
   ]);
   const pct = scan.pages_total ? Math.round((scan.pages_done / scan.pages_total) * 100) : 0;
   const recheck = startScan.bind(null, scan.site_id);
@@ -84,6 +86,21 @@ export default async function ScanPage({ params }: { params: Promise<{ scanId: s
       kind: "other",
       title: `Check ${plural(r.counts.unchecked, "more French page")}`,
       text: "These English pages link to French versions we haven't looked at yet. Check again to include them.",
+    });
+  }
+  // Names aren't counted as English text, but another-language names are only
+  // allowed as registered trademarks: remind once per name.
+  const names = englishNames([site?.name, ...declared.map((d) => d.site_name)], glossaryBrands(site?.glossary));
+  for (const n of names.slice(0, 3)) {
+    todos.push({
+      icon: "™",
+      kind: "other",
+      title: `Check that “${n.name}” may stay in English`,
+      text:
+        "We didn't count this name as English text. A name in another language is allowed only if it's a registered trademark with no French version registered." +
+        (n.genericWords.length ? ` Generic words in it (${n.genericWords.join(", ")}) may still need French.` : "") +
+        " If it's registered, add it to your glossary in Settings and we'll stop asking.",
+      action: <Link className="btn" href={`/sites/${scan.site_id}/settings`}>Settings</Link>,
     });
   }
   if (r.counts.failed) {

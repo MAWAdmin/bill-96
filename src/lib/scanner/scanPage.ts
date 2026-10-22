@@ -11,6 +11,8 @@ export interface PageResult {
   httpStatus: number | null;
   title: string | null;
   htmlLang: string | null;
+  /** The business name the page declares (og:site_name), if any. */
+  siteName: string | null;
   language: ContentLanguage | null;
   metrics: PageMetrics | null;
   hreflang: HreflangTag[];
@@ -75,7 +77,7 @@ async function newGuardedContext(browser: Browser): Promise<BrowserContext> {
 
 export async function scanPage(
   url: string,
-  opts: { reciprocityCache?: Map<string, Promise<any>>; screenshot?: boolean } = {}
+  opts: { reciprocityCache?: Map<string, Promise<any>>; screenshot?: boolean; brands?: string[] } = {}
 ): Promise<PageResult> {
   const result: PageResult = {
     url,
@@ -83,6 +85,7 @@ export async function scanPage(
     httpStatus: null,
     title: null,
     htmlLang: null,
+    siteName: null,
     language: null,
     metrics: null,
     hreflang: [],
@@ -136,10 +139,11 @@ export async function scanPage(
     const ex = (await page.evaluate(EXTRACT_SCRIPT)) as Extraction;
     result.title = ex.title;
     result.htmlLang = ex.htmlLang;
+    result.siteName = ex.siteName;
     result.hreflang = ex.hreflang;
 
     const pageUrl = result.finalUrl || url;
-    const analysis = analyzePage(ex, hasFrenchAlternate(ex.hreflang, pageUrl));
+    const analysis = analyzePage(ex, hasFrenchAlternate(ex.hreflang, pageUrl), opts.brands);
     result.language = analysis.language;
     result.metrics = analysis.metrics;
     result.blocks = analysis.blocks;

@@ -65,6 +65,8 @@ CREATE TABLE IF NOT EXISTS pages (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS pages_scan_idx ON pages(scan_id);
+-- The business name the page declares (og:site_name), added after launch.
+ALTER TABLE pages ADD COLUMN IF NOT EXISTS site_name text;
 
 CREATE TABLE IF NOT EXISTS issues (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

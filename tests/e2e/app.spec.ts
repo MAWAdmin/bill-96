@@ -74,6 +74,10 @@ test("sign up, add a site and check it", async ({ page }) => {
   await expect(todos.getByRole("heading", { name: /^Review \d+ French translations$/ })).toBeVisible();
   await expect(todos.getByRole("heading", { name: "Add French versions of 1 page" })).toBeVisible();
   await expect(todos.getByRole("heading", { name: "Give French top billing on 2 pages" })).toBeVisible();
+  // The fixture store calls itself "Maple Shop" (og:site_name): not counted as English, but flagged once.
+  const name = todos.locator(".todo", { has: page.getByRole("heading", { name: "Check that “Maple Shop” may stay in English" }) });
+  await expect(name).toContainText("registered trademark");
+  await expect(name).toContainText("Generic words in it (shop)");
 
   // Technical findings are tucked away for a developer.
   await expect(page.getByText("hreflang not reciprocal", { exact: true })).toBeHidden();

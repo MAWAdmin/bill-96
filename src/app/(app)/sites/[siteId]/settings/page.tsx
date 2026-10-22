@@ -58,7 +58,10 @@ export default async function SiteSettings({
                 defaultValue={site.glossary}
                 placeholder={"Add to cart => Ajouter au panier\nGlowRadiance (brand: keep as is)\nFree shipping => Livraison gratuite"}
               />
-              <div className="hint">One per line: <code>English =&gt; French</code>, or a bare term to keep untranslated (brand and product names).</div>
+              <div className="hint">
+                One per line: <code>English =&gt; French</code>. A name on its own line stays as is and never counts as English. Only list
+                names that may legally stay in English, such as registered trademarks with no French version registered.
+              </div>
             </div>
             <SubmitButton pendingText="Saving…">Save settings</SubmitButton>
           </ActionForm>

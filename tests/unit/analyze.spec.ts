@@ -24,9 +24,10 @@ const block = (text: string, o: Partial<RawBlock> = {}): RawBlock => ({
   ...o,
 });
 
-const ex = (blocks: RawBlock[], htmlLang = "fr-CA"): Extraction => ({
+const ex = (blocks: RawBlock[], htmlLang = "fr-CA", siteName: string | null = null): Extraction => ({
   htmlLang,
   title: "t",
+  siteName,
   canonical: null,
   hreflang: [],
   blocks,
@@ -101,6 +102,36 @@ test("fully French page has no language issues and no candidates", () => {
   );
   expect(a.issues).toHaveLength(0);
   expect(a.candidates).toHaveLength(0);
+});
+
+test.describe("business and brand names", () => {
+  // A French page of a store whose name is English.
+  const page = () => [
+    block("Depuis trois générations, notre famille récolte la sève des érables de la Beauce."),
+    block("Maple Shop", { kind: "alt", tag: "img" }),
+    block("Sirop d'érable — Maple Shop", { kind: "meta", role: "meta", tag: "head" }),
+  ];
+
+  test("an English business name makes French text look English when it isn't known", () => {
+    const a = analyzePage(ex(page()), false);
+    expect(a.candidates.map((c) => c.text)).toEqual(expect.arrayContaining(["Maple Shop", "Sirop d'érable — Maple Shop"]));
+  });
+
+  test("the site's name and glossary brands never count as English", () => {
+    const a = analyzePage(ex(page()), false, ["Maple Shop"]);
+    expect(a.issues).toEqual([]);
+    expect(a.candidates).toEqual([]);
+  });
+
+  test("the name the page declares (og:site_name) is used automatically", () => {
+    const a = analyzePage(ex(page(), "fr-CA", "Maple Shop"), false);
+    expect(a.issues).toEqual([]);
+  });
+
+  test("English around a brand name is still English", () => {
+    const a = analyzePage(ex([...page(), block("Our Story — Maple Shop", { role: "heading", tag: "h2" })], "fr-CA", "Maple Shop"), false);
+    expect(a.candidates.map((c) => c.text)).toEqual(["Our Story — Maple Shop"]);
+  });
 });
 
 test.describe("hreflang", () => {

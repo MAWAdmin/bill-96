@@ -28,6 +28,8 @@ export interface RawHreflang {
 export interface Extraction {
   htmlLang: string;
   title: string;
+  /** The business name the page declares (og:site_name / application-name), if any. */
+  siteName: string | null;
   canonical: string | null;
   hreflang: RawHreflang[];
   blocks: RawBlock[];
@@ -122,9 +124,11 @@ export const EXTRACT_SCRIPT = String.raw`(() => {
   if (desc && hasLetter(clean(desc.getAttribute("content")))) push(desc, clean(desc.getAttribute("content")), "meta", null);
 
   const canonical = document.querySelector('link[rel="canonical"]');
+  const siteNameEl = document.querySelector('meta[property="og:site_name"], meta[name="application-name"]');
   return {
     htmlLang: document.documentElement.getAttribute("lang") || "",
     title: clean(document.title),
+    siteName: siteNameEl ? clean(siteNameEl.getAttribute("content")) || null : null,
     canonical: canonical ? canonical.href : null,
     hreflang: Array.from(document.querySelectorAll('link[rel~="alternate"][hreflang]')).map((l) => ({
       hreflang: l.getAttribute("hreflang") || "",

@@ -16,7 +16,7 @@ and export.
 | **Sites** | Add a site, pick its platform, store connector credentials (encrypted at rest, AES-256-GCM), glossary, default page budget. |
 | **Checks** | One click (*Check now*): discovers pages from robots.txt / sitemap.xml / Shopify sitemap index / `wp-sitemap.xml`, falling back to homepage links. Or pick *specific URLs*. When an English page links a French version (hreflang), that French page is checked right after it, so every page is judged on its French side. Runs in the background with a live progress view. |
 | **Real-browser checks** | Each page loads in Google Chrome (Playwright). For every visible text block it records the rendered font size, weight, position (above the fold or not) and role (heading, button, nav, footer). Also image alt text, placeholders, button values, aria-labels, title and meta description. |
-| **French vs English** | Classifies each block (fr / en / mixed / unclear) with a word-list detector that ignores words shared by both languages. That fixes the old bug where French "on" counted as English. |
+| **French vs English** | Classifies each block (fr / en / mixed / unclear) with a word-list detector that ignores words shared by both languages (French "on" and "or" are not English). Business and brand names don't count as English text: the site's name, the name the page declares (`og:site_name`), and bare terms in the site glossary are blanked out before classifying. Because a name in another language is only allowed as a registered trademark (Charter, as amended by Bill 96, in force June 1, 2025), any English business name gets one reminder on the results page, naming generic words in it (e.g. "Shop") that may still need French. Glossary names are treated as confirmed and get no reminder. |
 | **Visual prominence** | Weights text by size² × weight × above-the-fold × role. It flags pages where English outweighs French, the biggest English text beats the biggest French text, or English dominates the first screen. |
 | **Readiness** | Each English page and its French version are one row. A row is *French-ready*, has *English left*, has *no French version*, or its French wasn't checked. The headline is the share of pages that are French-ready, with the change since the previous check and a short *What to do next* list (`src/lib/readiness.ts`). |
 | **Issues** | Owner-facing: no French version, English text on French pages, English alt text/placeholders, English SEO title/description, English more prominent. For a developer (folded away): `<html lang>` missing or mismatched, hreflang problems (missing, no self-reference, no x-default, invalid codes, no French alternate, conflicts, **broken and non-reciprocal alternates**, checked by fetching each alternate; alternates the store refuses to serve to the checker with 401/403/429 are skipped, not reported as broken), JS errors (requests the scanner itself blocks are ignored). |
@@ -93,7 +93,7 @@ npm run check -- https://store.com --json
 ## Tests
 
 ```bash
-npm test            # unit + real-Chrome scanner tests against the fixture storefront (46 tests)
+npm test            # unit + real-Chrome scanner tests against the fixture storefront (54 tests)
 npm run test:e2e    # full browser journey through the web app (8 tests)
 npm run typecheck
 ```
