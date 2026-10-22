@@ -146,7 +146,7 @@ export function analyzePage(ex: Extraction, hasFrenchAlternate: boolean, brands:
       issues.push({
         code: "ENGLISH_MORE_PROMINENT",
         severity: "high",
-        message: `English is visually more prominent than French (French prominence share ${pct(metrics.frProminenceShare)}). French must be at least as prominent, and markedly predominant in advertising.`,
+        message: `English is visually more prominent than French (French prominence share ${pct(metrics.frProminenceShare)}). French must be at least as prominent.`,
         details: { frProminence: metrics.frProminence, enProminence: metrics.enProminence },
       });
     }

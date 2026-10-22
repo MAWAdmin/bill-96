@@ -10,17 +10,17 @@ export const ISSUE_LABELS: Record<string, { label: string; severity: Severity; f
   ENGLISH_MORE_PROMINENT: {
     label: "English more prominent than French",
     severity: "high",
-    fix: "French must be displayed at least as prominently as English (Charter s. 91), and in commercial advertising it must be markedly predominant (s. 58). Make the French bigger and more visible, or remove the English.",
+    fix: "French must be displayed at least as prominently as English (Charter s. 91). Make the French at least as big and visible, or remove the English.",
   },
   ENGLISH_LARGER_TEXT: {
     label: "English text larger than French",
     severity: "medium",
-    fix: "Make the French heading or label at least as large as the English one (Charter s. 91; in advertising, French must be markedly predominant, s. 58).",
+    fix: "Make the French heading or label at least as large as the English one (Charter s. 91).",
   },
   ENGLISH_DOMINATES_ABOVE_FOLD: {
     label: "English dominates the first screen",
     severity: "medium",
-    fix: "Lead with French in the hero, header and announcement bar (Charter s. 58, 91).",
+    fix: "Lead with French in the hero, header and announcement bar (Charter s. 91).",
   },
   UNTRANSLATED_TEXT: {
     label: "English text on French page",

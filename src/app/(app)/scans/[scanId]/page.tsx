@@ -76,7 +76,7 @@ export default async function ScanPage({ params }: { params: Promise<{ scanId: s
       icon: "↕",
       kind: "prominence",
       title: `Give French top billing on ${plural(prominence, "page")}`,
-      text: "English is bigger or shown first there. French must be at least as prominent as English (Charter s. 91), and markedly predominant in advertising (s. 58).",
+      text: "English is bigger or shown first there. French must be at least as prominent as English (Charter s. 91).",
       action: <a className="btn" href="#pages">See pages</a>,
     });
   }

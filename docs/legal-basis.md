@@ -11,15 +11,20 @@ added by Bill 96 (S.Q. 2022, c. 14, ss. 43, 48, 49) came into force on
 |---|---|---|
 | No French version | s. 52 | English page with no linked French version is critical. |
 | English left on a French page (text, image descriptions, placeholders, title, search description) | ss. 52, 91 | Each English string is listed and queued for French. |
-| English more prominent / larger / shown first | ss. 91, 58 | Flagged when English outweighs French. s. 58's stricter *markedly predominant* test for advertising is cited but not measured yet (see below). |
+| English more prominent / larger / shown first | s. 91 | Flagged when English outweighs French on a page that has both. |
 | Business or brand name in English | ss. 58.1, 63, 67, 68 | Not counted as English text; one reminder per name. Names in the site glossary are treated as confirmed. |
 
-## Not applied yet
+## Not applied
 
-- **Markedly predominant (s. 58).** Its test is defined in the Regulation
-  respecting the language of commerce and business (CQLR c. C-11, r. 9), which
-  hasn't been reviewed. Until it is, the checker only flags English that
-  outweighs French (the s. 91 floor) and cites s. 58 in the guidance.
+- **Markedly predominant (ss. 58, 58.1, 68.1).** This is a space-and-size test
+  for public signs and posters and commercial advertising, where French has to
+  take clearly more room than the other language. A store website normally has
+  separate French and English pages, each in one language, which s. 52 governs
+  (French version on terms at least as favourable). So the checker applies the
+  s. 91 rule (French at least as prominent) to pages that mix both languages,
+  not the markedly predominant test. A bilingual promotional banner could be
+  argued to be commercial advertising under s. 58; that call is left to the
+  owner or their advisor.
 - **Products (ss. 51, 51.1)** cover inscriptions on products and packaging,
   including the rule that generic terms in a trademark must appear in French.
   They are outside what a website check can see, so the checker doesn't apply
