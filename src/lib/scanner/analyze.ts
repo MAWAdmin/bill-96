@@ -117,7 +117,7 @@ export function analyzePage(ex: Extraction, hasFrenchAlternate: boolean): PageAn
 
   const english = (pred: (b: Block) => boolean) =>
     blocks.filter((b) => (b.lang === "en" || b.lang === "mixed") && pred(b));
-  const sample = (bs: Block[]) => bs.slice(0, 12).map((b) => b.text.slice(0, 120));
+  const sample = (bs: Block[]) => [...new Set(bs.map((b) => b.text.slice(0, 120)))].slice(0, 12);
 
   if (language === "en" && !declaredFr) {
     if (hasFrenchAlternate) {

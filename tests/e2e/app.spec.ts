@@ -85,9 +85,17 @@ test("page detail shows both versions, what to fix and measured blocks", async (
   await signin(page);
   await page.goto(scanUrl);
   await page.getByRole("link", { name: /Sirop d'érable pur/ }).click();
-  await expect(page.getByText("English text on French page")).toBeVisible();
-  await expect(page.getByText("English alt text / placeholders")).toBeVisible();
-  await expect(page.getByText("English text larger than French")).toBeVisible();
+  // Each piece of English once, where it is, and its French draft.
+  const english = page.getByTestId("still-english");
+  const row = (text: string) => english.locator(".fix-row", { hasText: text });
+  await expect(row("Free shipping on all orders over $50!")).toContainText("[FR] Free shipping on all orders over $50!");
+  await expect(row("Free shipping on all orders over $50!")).toContainText("draft");
+  await expect(row("Enter quantity")).toContainText("Form placeholder");
+  await expect(row("Bottle of pure maple syrup on a wooden table")).toContainText("Image description");
+  await expect(row("Shop our best-selling maple syrup with free shipping.")).toContainText("Google search description");
+  await expect(english.locator(".fix-row", { hasText: "Add to cart" })).toHaveCount(1);
+  await expect(page.getByRole("heading", { name: "English is more visible than French" })).toBeVisible();
+  await expect(page.getByText(/Largest English text \(36px\)/)).toBeVisible();
 
   await expect(page.getByRole("img", { name: "Screenshot of the English page" })).toBeVisible();
   const shot = page.getByRole("img", { name: "Screenshot of the French page" });

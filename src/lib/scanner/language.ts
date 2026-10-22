@@ -1,9 +1,9 @@
 /**
  * Lightweight French/English classifier for short UI strings and paragraphs.
  *
- * Words that are common in BOTH languages ("on", "a", "plus", "total",
- * "contact", "menu", "description", "type", "service"...) are deliberately left
- * out of both lists so they never tip the balance. Accented letters are a
+ * Words that are common in BOTH languages ("on", "a", "or", "plus", "total",
+ * "contact", "menu", "code", "description", "type", "service"...) are
+ * deliberately left out of both lists so they never tip the balance. Accented letters are a
  * strong French signal. Strings with no signal (brand names, SKUs, prices)
  * come back as "unknown" and are ignored by the predominance maths.
  */
@@ -20,6 +20,7 @@ export interface LangResult {
 const FR_WORDS = new Set(
   `le la les des du de un une et est sont pour avec vous votre vos nous notre nos sur dans au aux ce cette ces
   qui que quoi dont où ou mais donc ni pas ne moins très tout tous toute toutes être avoir fait faire
+  en par afin chaque selon lors avant plusieurs autre autres
   il elle ils elles je tu mon ma mes ton ta tes son sa ses leur leurs lui y chez sans sous entre vers depuis
   aussi bien comme encore alors ici voici voilà jour jours ans année nouveau nouvelle nouveautés
   panier ajouter acheter commander commande commandes livraison gratuite gratuit retour retours boutique
@@ -38,7 +39,7 @@ const FR_WORDS = new Set(
 
 const EN_WORDS = new Set(
   `the and of to is are for with you your our we us this that these those which what who where when how
-  it its be been being have has had do does did not no yes but or if then than from by at as into about
+  it its be been being have has had do does did not no yes but if then than from by at as into about
   my he she they them their there here all any each every some more most other new now just only also
   very can will would should could may might must shall get got make made see view read learn shop buy
   add cart checkout bag basket shipping free returns return store search account login log sign up in out
@@ -49,7 +50,7 @@ const EN_WORDS = new Set(
   categories sort filter filters results warranty gift gifts card cards taxes included hours open closed
   monday tuesday wednesday thursday friday saturday sunday january february march april june july august
   september october november december english french language close previous next continue shopping
-  wishlist share follow item items left only remove update apply discount code coupon enter`
+  wishlist share follow item items left only remove update apply discount enter`
     .split(/\s+/)
     .filter(Boolean)
 );

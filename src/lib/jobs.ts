@@ -135,6 +135,19 @@ async function runScan(scanId: string) {
   }
 }
 
+/**
+ * Blocks kept for the page detail view: every English/mixed block (that's
+ * what the owner fixes; alt text and meta have no prominence and would
+ * otherwise fall off a long page), plus the most prominent of the rest.
+ */
+function storedBlocks(r: PageResult) {
+  const isEnglish = (b: PageResult["blocks"][number]) => b.lang === "en" || b.lang === "mixed";
+  const byProminence = (a: { prominence: number }, b: { prominence: number }) => b.prominence - a.prominence;
+  const english = r.blocks.filter(isEnglish).slice(0, 1000);
+  const rest = r.blocks.filter((b) => !isEnglish(b)).sort(byProminence).slice(0, 400);
+  return [...english, ...rest].sort(byProminence);
+}
+
 async function savePage(scanId: string, site: SiteRow, r: PageResult) {
   const page = (await queryOne<{ id: string }>(
     `INSERT INTO pages (scan_id, url, final_url, http_status, title, html_lang, page_language, score, metrics, hreflang, blocks, console_errors, error)
@@ -150,8 +163,7 @@ async function savePage(scanId: string, site: SiteRow, r: PageResult) {
       r.score,
       json(r.metrics),
       json(r.hreflang),
-      // Keep the most prominent blocks for the page detail view.
-      json([...r.blocks].sort((a, b) => b.prominence - a.prominence).slice(0, 400)),
+      json(storedBlocks(r)),
       json(r.consoleErrors),
       r.error,
     ]

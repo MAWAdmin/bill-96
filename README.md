@@ -93,7 +93,7 @@ npm run check -- https://store.com --json
 ## Tests
 
 ```bash
-npm test            # unit + real-Chrome scanner tests against the fixture storefront (41 tests)
+npm test            # unit + real-Chrome scanner tests against the fixture storefront (46 tests)
 npm run test:e2e    # full browser journey through the web app (8 tests)
 npm run typecheck
 ```

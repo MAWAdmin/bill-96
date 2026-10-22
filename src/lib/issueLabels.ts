@@ -60,3 +60,10 @@ export const ISSUE_LABELS: Record<string, { label: string; severity: Severity; f
   LOAD_FAILED: { label: "Page failed to load", severity: "critical", fix: "Check the URL is reachable from the scanner." },
   CONSOLE_ERRORS: { label: "JavaScript errors", severity: "info", fix: "Broken scripts can stop translation apps from swapping text to French." },
 };
+
+/** How to add a French version, per store platform. */
+export const ADD_FRENCH_HINT: Record<string, string> = {
+  shopify: "Turn on French in Shopify (Settings → Languages), then translate your pages with the Translate & Adapt app.",
+  wordpress: "Add French versions with WPML, Polylang or TranslatePress.",
+  generic: "Publish a French version and link it to the English one.",
+};

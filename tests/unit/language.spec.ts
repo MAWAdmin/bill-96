@@ -18,6 +18,12 @@ test.describe("detectLanguage", () => {
     ["$29.99", "unknown"],
     ["Menu", "unknown"],
     ["Ajouter to cart", "mixed"],
+    // "or" is gold in French, "en" is French: jewellery alt text from a real store.
+    ["Bague en or rose 14 carats sertie de diamants, avec anneau assorti.", "fr"],
+    ["Bague de fiançailles en or rose 14 carats", "fr"],
+    ["Code promo", "unknown"],
+    ["Enter discount code", "en"],
+    ["14K rose gold ring with a 0.49-carat old-cut natural centre diamond. Free shipping in Canada.", "en"],
   ];
   for (const [text, lang] of cases) {
     test(`${JSON.stringify(text)} -> ${lang}`, () => {

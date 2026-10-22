@@ -8,14 +8,8 @@ import { OWNER_CODES, PROMINENCE_CODES } from "@/lib/readiness";
 import { cancelScan, startScan } from "@/app/actions";
 import { AutoRefresh, CheckNowButton, SubmitButton } from "@/components/forms";
 import { Delta, Disclaimer, fmtDate, PairRow, plural, ReadinessRing, readinessHeadline, SeverityBadge } from "@/components/ui";
-import { ISSUE_LABELS } from "@/lib/issueLabels";
+import { ADD_FRENCH_HINT, ISSUE_LABELS } from "@/lib/issueLabels";
 import { SEVERITY_ORDER } from "@/lib/scanner/types";
-
-const ADD_FRENCH_HINT: Record<string, string> = {
-  shopify: "Turn on French in Shopify (Settings → Languages) and translate these pages with the Translate & Adapt app.",
-  wordpress: "Add French versions with WPML, Polylang or TranslatePress.",
-  generic: "Publish a French version of each page and link it to the English one.",
-};
 
 interface Todo {
   icon: string;
