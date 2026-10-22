@@ -2,7 +2,7 @@ import type { Browser, BrowserContext } from "playwright";
 import { AUTOSCROLL_SCRIPT, EXTRACT_SCRIPT, type Extraction } from "./extract";
 import { analyzePage } from "./analyze";
 import { checkHreflangTags, checkReciprocity, hasFrenchAlternate } from "./hreflang";
-import { isHostAllowed } from "../net";
+import { BROWSER_UA, isHostAllowed } from "../net";
 import { scoreFromIssues, type Block, type ContentLanguage, type HreflangTag, type Issue, type PageMetrics, type TranslationCandidate } from "./types";
 
 export interface PageResult {
@@ -54,8 +54,7 @@ async function newGuardedContext(browser: Browser): Promise<BrowserContext> {
     viewport: { width: 1366, height: 900 },
     locale: "fr-CA",
     extraHTTPHeaders: { "accept-language": "fr-CA,fr;q=0.9,en;q=0.5" },
-    userAgent:
-      "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36 Bill96Checker/1.0",
+    userAgent: BROWSER_UA,
   });
   // Every request the page makes (including redirects and sub-resources) is
   // checked, so a scanned page can't make the scanner read internal services.
@@ -101,7 +100,10 @@ export async function scanPage(
   const context = await newGuardedContext(browser);
   const page = await context.newPage();
   page.on("console", (msg) => {
-    if (msg.type() === "error" && result.consoleErrors.length < 50) result.consoleErrors.push(msg.text().slice(0, 500));
+    // Requests the scanner blocks itself (video, private hosts) are logged by
+    // Chrome as net::ERR_BLOCKED_BY_CLIENT; they are not the site's errors.
+    if (msg.type() !== "error" || msg.text().includes("ERR_BLOCKED_BY_CLIENT")) return;
+    if (result.consoleErrors.length < 50) result.consoleErrors.push(msg.text().slice(0, 500));
   });
   page.on("pageerror", (err) => {
     if (result.consoleErrors.length < 50) result.consoleErrors.push(String(err).slice(0, 500));
@@ -145,7 +147,7 @@ export async function scanPage(
     result.issues.push(...analysis.issues);
     result.issues.push(...checkHreflangTags(ex.hreflang, pageUrl, ex.canonical));
     if (ex.hreflang.length) {
-      result.issues.push(...(await checkReciprocity(ex.hreflang, pageUrl, opts.reciprocityCache ?? new Map())));
+      result.issues.push(...(await checkReciprocity(ex.hreflang, pageUrl, opts.reciprocityCache ?? new Map(), ex.canonical)));
     }
     if (result.httpStatus && result.httpStatus >= 400) {
       result.issues.push({ code: "HTTP_ERROR", severity: "high", message: `Page returned HTTP ${result.httpStatus}.` });

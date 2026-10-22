@@ -63,6 +63,10 @@ export async function assertScannableUrl(input: string): Promise<string> {
 
 const MAX_BYTES = 3_000_000;
 
+/** Desktop Chrome user agent, so storefronts treat the scanner like a visitor. */
+export const BROWSER_UA =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36 Bill96Checker/1.0";
+
 /** GET with redirect hops re-validated, timeout, and size cap. */
 export async function fetchText(
   input: string,

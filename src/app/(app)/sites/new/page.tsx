@@ -8,16 +8,17 @@ export default function NewSite() {
     <>
       <div className="crumbs"><Link href="/dashboard">Sites</Link> /</div>
       <h1>Add a site</h1>
+      <p className="muted">Three quick details, then we&apos;ll check how French-ready it is.</p>
       <div className="card" style={{ maxWidth: 620 }}>
         <ActionForm action={createSite}>
           <div className="field">
             <label htmlFor="name">Name</label>
-            <input id="name" name="name" type="text" placeholder="My Store" required />
+            <input id="name" name="name" type="text" placeholder="My Store" required autoFocus />
           </div>
           <div className="field">
             <label htmlFor="base_url">Website URL</label>
             <input id="base_url" name="base_url" type="url" placeholder="https://www.mystore.com" required />
-            <div className="hint">The public storefront. If French lives on a separate path or domain (e.g. /fr), use the main one; hreflang links are followed.</div>
+            <div className="hint">Your main store address. We find the French version of each page automatically.</div>
           </div>
           <div className="field">
             <label htmlFor="platform">Platform</label>
@@ -26,11 +27,7 @@ export default function NewSite() {
                 <option key={c.platform} value={c.platform}>{c.label}</option>
               ))}
             </select>
-            <div className="hint">Store credentials can be added later in the site settings.</div>
-          </div>
-          <div className="field">
-            <label htmlFor="max_pages">Default pages per scan</label>
-            <input id="max_pages" name="max_pages" type="number" min={1} max={200} defaultValue={25} style={{ maxWidth: 140 }} />
+            <div className="hint">You can connect your store account later in the site settings.</div>
           </div>
           <SubmitButton pendingText="Saving…">Add site</SubmitButton>
         </ActionForm>

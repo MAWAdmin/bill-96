@@ -3,10 +3,10 @@ import { requireUser } from "@/lib/auth";
 import { loadSite, type Scan } from "@/lib/access";
 import { query } from "@/lib/db";
 import { getConnector } from "@/lib/connectors";
+import { loadReadiness } from "@/lib/results";
 import { startScan } from "@/app/actions";
-import { ActionForm, ScanModeFields, SubmitButton } from "@/components/forms";
-import { fmtDate, ScoreBadge, SeverityBadge, Stat, StatusBadge } from "@/components/ui";
-import { ISSUE_LABELS } from "@/lib/issueLabels";
+import { ActionForm, CheckNowButton, ScanModeFields, SubmitButton } from "@/components/forms";
+import { Delta, fmtDate, plural, ReadinessRing, readinessHeadline, StatusBadge } from "@/components/ui";
 
 export default async function SitePage({ params }: { params: Promise<{ siteId: string }> }) {
   const { siteId } = await params;
@@ -18,10 +18,14 @@ export default async function SitePage({ params }: { params: Promise<{ siteId: s
     [site.id]
   );
   const tc = Object.fromEntries(counts.map((c) => [c.status, Number(c.n)])) as Record<string, number>;
-  const latest = scans.find((s) => s.status === "completed");
-  const topCodes = latest?.summary?.byCode
-    ? Object.entries(latest.summary.byCode as Record<string, number>).sort((a, b) => b[1] - a[1]).slice(0, 8)
-    : [];
+  const toReview = (tc.pending ?? 0) + (tc.draft ?? 0);
+  const approved = (tc.approved ?? 0) + (tc.published ?? 0);
+  const completed = scans.filter((s) => s.status === "completed");
+  const latest = completed[0];
+  const running = scans.find((s) => s.status === "running" || s.status === "queued");
+  const r = latest ? await loadReadiness(latest.id) : null;
+  const head = r ? readinessHeadline(r) : null;
+  const check = startScan.bind(null, site.id);
 
   return (
     <>
@@ -33,82 +37,97 @@ export default async function SitePage({ params }: { params: Promise<{ siteId: s
             <a href={site.base_url} target="_blank" rel="noreferrer">{site.base_url}</a> · {getConnector(site.platform).label}
           </p>
         </div>
-        <div className="row">
-          <Link className="btn" href={`/translations?site=${site.id}`}>Translations</Link>
-          <Link className="btn" href={`/sites/${site.id}/settings`}>Settings</Link>
-        </div>
+        <Link className="btn btn-ghost" href={`/sites/${site.id}/settings`}>Settings</Link>
       </div>
 
-      <div className="grid grid-4" style={{ marginBottom: 20 }}>
-        <Stat label="Latest score" value={<ScoreBadge score={latest?.score} />} sub={latest ? fmtDate(latest.finished_at) : "no completed scan"} />
-        <Stat label="Pages checked" value={latest?.summary?.pages ?? "–"} />
-        <Stat label="Pending / drafts" value={`${tc.pending ?? 0} / ${tc.draft ?? 0}`} sub="strings needing French" />
-        <Stat label="Approved" value={(tc.approved ?? 0) + (tc.published ?? 0)} sub="ready to publish/export" />
-      </div>
-
-      <div className="grid grid-2">
-        <div className="card">
-          <h2>Run a scan</h2>
-          <ActionForm action={startScan.bind(null, site.id)}>
-            <ScanModeFields defaultMax={site.max_pages} baseUrl={site.base_url} />
-            <SubmitButton pendingText="Starting…">Start scan</SubmitButton>
-          </ActionForm>
+      {running && (
+        <div className="alert alert-info row">
+          <span>We&apos;re checking this site right now.</span>
+          <span className="spacer" />
+          <Link href={`/scans/${running.id}`}>Watch progress →</Link>
         </div>
-        <div className="card">
-          <h2>Top issues in latest scan</h2>
-          {topCodes.length === 0 ? (
-            <p className="muted">{latest ? "No issues found. 🎉" : "Run a scan to see issues."}</p>
+      )}
+
+      <div className="card hero-card">
+        <ReadinessRing percent={r?.percent} />
+        <div style={{ flex: 1, minWidth: 260 }}>
+          {head ? (
+            <>
+              <h2>{head.title}</h2>
+              <p className="lead">Last checked {fmtDate(latest!.created_at)} · {plural(latest!.pages_done, "page")}</p>
+              <div className="row">
+                <Link className="btn btn-primary" href={`/scans/${latest!.id}`}>See what to fix</Link>
+                {!running && <CheckNowButton action={check} className="btn">Check again</CheckNowButton>}
+                <Delta now={r!.percent} before={completed[1]?.summary?.readiness?.percent} since={completed[1]?.created_at ?? null} />
+              </div>
+            </>
           ) : (
-            <table>
-              <tbody>
-                {topCodes.map(([code, n]) => (
-                  <tr key={code}>
-                    <td><SeverityBadge severity={ISSUE_LABELS[code]?.severity ?? "info"} /></td>
-                    <td>{ISSUE_LABELS[code]?.label ?? code}</td>
-                    <td className="num">{n}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <>
+              <h2>Let&apos;s see how French-ready {site.name} is</h2>
+              <p className="lead">
+                We open your pages in a real browser, find English where French is needed, and draft French translations for you to review.
+                It takes a few minutes.
+              </p>
+              {!running && <CheckNowButton action={check} className="btn btn-primary btn-lg">Check now</CheckNowButton>}
+            </>
           )}
         </div>
       </div>
 
-      <div className="card">
-        <h2>Scan history</h2>
-        {scans.length === 0 ? (
-          <p className="muted">No scans yet.</p>
-        ) : (
+      <div className="card row">
+        <div style={{ flex: 1, minWidth: 220 }}>
+          <h2 style={{ marginBottom: 4 }}>French translations</h2>
+          <p className="muted" style={{ margin: 0 }}>
+            {toReview || approved
+              ? `${plural(toReview, "string")} to review · ${approved} approved`
+              : "Text that needs French shows up here, each with a French draft to check."}
+          </p>
+        </div>
+        <Link className={toReview ? "btn btn-primary" : "btn"} href={`/translations?site=${site.id}`}>
+          {toReview ? "Review translations" : "Open translations"}
+        </Link>
+      </div>
+
+      <details className="tech">
+        <summary>Choose which pages to check</summary>
+        <div className="tech-body">
+          <ActionForm action={check}>
+            <ScanModeFields defaultMax={site.max_pages} baseUrl={site.base_url} />
+            <SubmitButton pendingText="Starting…">Start check</SubmitButton>
+          </ActionForm>
+        </div>
+      </details>
+
+      {scans.length > 0 && (
+        <div className="card">
+          <h2>Past checks</h2>
           <div className="table-wrap">
             <table>
               <thead>
                 <tr>
-                  <th>Started</th>
-                  <th>Mode</th>
+                  <th>When</th>
                   <th>Status</th>
                   <th className="num">Pages</th>
-                  <th className="num">Critical</th>
-                  <th className="num">High</th>
-                  <th className="num">Score</th>
+                  <th className="num">French-ready</th>
                 </tr>
               </thead>
               <tbody>
-                {scans.map((s) => (
-                  <tr key={s.id}>
-                    <td><Link href={`/scans/${s.id}`}>{fmtDate(s.created_at)}</Link></td>
-                    <td>{s.mode === "sitemap" ? "Whole site" : "URL list"}</td>
-                    <td><StatusBadge status={s.status} /></td>
-                    <td className="num">{s.pages_done}/{s.pages_total}</td>
-                    <td className="num">{s.summary?.bySeverity?.critical ?? "–"}</td>
-                    <td className="num">{s.summary?.bySeverity?.high ?? "–"}</td>
-                    <td className="num"><ScoreBadge score={s.score} /></td>
-                  </tr>
-                ))}
+                {scans.map((s) => {
+                  const pct = s.summary?.readiness?.percent;
+                  return (
+                    <tr key={s.id}>
+                      <td><Link href={`/scans/${s.id}`}>{fmtDate(s.created_at)}</Link></td>
+                      <td><StatusBadge status={s.status} /></td>
+                      <td className="num">{s.pages_done}</td>
+                      <td className="num">{pct === null || pct === undefined ? "–" : `${pct}%`}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </>
   );
 }

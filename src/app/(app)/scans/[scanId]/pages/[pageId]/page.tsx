@@ -3,7 +3,9 @@ import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { isUuid, loadScan } from "@/lib/access";
 import { query, queryOne } from "@/lib/db";
-import { FrShareBar, LangBadge, ScoreBadge, SeverityBadge, Stat } from "@/components/ui";
+import { loadReadiness } from "@/lib/results";
+import { OWNER_CODES, type ReadinessPage } from "@/lib/readiness";
+import { FrShareBar, LangBadge, SeverityBadge, Stat, StatusPill } from "@/components/ui";
 import { ISSUE_LABELS } from "@/lib/issueLabels";
 import type { Block, HreflangTag, PageMetrics } from "@/lib/scanner/types";
 
@@ -24,6 +26,35 @@ interface PageDetail {
   error: string | null;
 }
 
+interface IssueRow {
+  id: string;
+  code: string;
+  severity: string;
+  message: string;
+  details: any;
+}
+
+function Screenshot({ page, side, scanId, current }: { page: ReadinessPage; side: string; scanId: string; current: boolean }) {
+  return (
+    <div className="card">
+      <div className="shot-label">
+        {side} version
+        <span className="spacer" />
+        {!current && <Link href={`/scans/${scanId}/pages/${page.id}`} className="small">Open →</Link>}
+      </div>
+      {page.has_screenshot ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img className="shot" src={`/api/screenshots/${page.id}`} alt={`Screenshot of the ${side} page`} />
+      ) : (
+        <p className="muted">No screenshot.</p>
+      )}
+      <a href={page.final_url || page.url} target="_blank" rel="noreferrer" className="url small" style={{ marginTop: 8 }}>
+        {page.final_url || page.url}
+      </a>
+    </div>
+  );
+}
+
 export default async function PageDetailView({
   params,
   searchParams,
@@ -38,11 +69,19 @@ export default async function PageDetailView({
   if (!isUuid(pageId)) notFound();
   const page = await queryOne<PageDetail>(`SELECT * FROM pages WHERE id = $1 AND scan_id = $2`, [pageId, scan.id]);
   if (!page) notFound();
-  const issues = await query<{ id: string; code: string; severity: string; message: string; details: any }>(
-    `SELECT id, code, severity, message, details FROM issues WHERE page_id = $1
-     ORDER BY array_position(ARRAY['critical','high','medium','low','info'], severity)`,
-    [page.id]
-  );
+  const [issues, readiness] = await Promise.all([
+    query<IssueRow>(
+      `SELECT id, code, severity, message, details FROM issues WHERE page_id = $1
+       ORDER BY array_position(ARRAY['critical','high','medium','low','info'], severity)`,
+      [page.id]
+    ),
+    loadReadiness(scan.id),
+  ]);
+  const group = readiness.groups.find((g) => g.english?.id === page.id || g.french?.id === page.id);
+  const isEnglishSide = group?.english?.id === page.id;
+  const twin = isEnglishSide ? group?.french : group?.english;
+  const ownerIssues = issues.filter((i) => OWNER_CODES.includes(i.code) && i.code !== "ENGLISH_PAGE_WITH_FRENCH_VERSION");
+  const techIssues = issues.filter((i) => !OWNER_CODES.includes(i.code));
   const m = page.metrics;
   const blocks = (page.blocks ?? []).filter((b) => !lang || b.lang === lang);
 
@@ -50,35 +89,58 @@ export default async function PageDetailView({
     <>
       <div className="crumbs">
         <Link href="/dashboard">Sites</Link> / <Link href={`/sites/${scan.site_id}`}>{scan.site_name}</Link> /{" "}
-        <Link href={`/scans/${scan.id}`}>Scan</Link> /
+        <Link href={`/scans/${scan.id}`}>Check results</Link> /
       </div>
       <div className="page-head">
-        <div>
+        <div style={{ minWidth: 0 }}>
           <h1>{page.title || "Untitled page"}</h1>
           <p>
+            {isEnglishSide ? "English version" : "French version"} ·{" "}
             <a href={page.final_url || page.url} target="_blank" rel="noreferrer">{page.final_url || page.url}</a>
-            {page.http_status ? ` · HTTP ${page.http_status}` : ""} · <code>lang=&quot;{page.html_lang || "—"}&quot;</code>
           </p>
         </div>
-        <ScoreBadge score={page.score} />
+        {group && <StatusPill status={group.status} />}
       </div>
 
-      {page.error && <div className="alert alert-error">{page.error}</div>}
+      {page.error && <div className="alert alert-error">This page didn&apos;t load: {page.error}</div>}
 
-      {m && (
-        <div className="grid grid-4" style={{ marginBottom: 20 }}>
-          <Stat label="Detected language" value={<LangBadge lang={page.page_language} />} />
-          <Stat label="French prominence" value={<FrShareBar share={m.frProminenceShare} />} sub="weighted by size, weight & position" />
-          <Stat label="French text share" value={<FrShareBar share={m.frCharShare} />} sub={`${m.frChars} FR / ${m.enChars} EN chars`} />
-          <Stat label="Largest text" value={`${m.maxFontFr || "–"} / ${m.maxFontEn || "–"}`} sub="px, French / English" />
+      <div className="card">
+        <h2>What needs fixing</h2>
+        {ownerIssues.length === 0 ? (
+          <p className="muted" style={{ margin: 0 }}>
+            {isEnglishSide && group?.french ? (
+              <>This is the English version, so there&apos;s nothing to translate here. <Link href={`/scans/${scan.id}/pages/${group.french.id}`}>See the French version →</Link></>
+            ) : isEnglishSide && group?.status === "unchecked" ? (
+              "This is the English version. It links to a French version that this check didn't include."
+            ) : (
+              "Nothing on this page. 🎉"
+            )}
+          </p>
+        ) : (
+          ownerIssues.map((i) => (
+            <div key={i.id} className={`issue sev-${i.severity}`}>
+              <strong>{ISSUE_LABELS[i.code]?.label ?? i.code}</strong>
+              <div style={{ marginTop: 4 }}>{i.message}</div>
+              {ISSUE_LABELS[i.code]?.fix && <div className="small muted" style={{ marginTop: 4 }}>How to fix: {ISSUE_LABELS[i.code].fix}</div>}
+              {Array.isArray(i.details?.examples) && (
+                <ul>{i.details.examples.map((e: string, k: number) => <li key={k}>{e}</li>)}</ul>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+
+      {group && (
+        <div className={twin ? "grid grid-2" : ""}>
+          {group?.english && <Screenshot page={group.english} side="English" scanId={scan.id} current={isEnglishSide} />}
+          {group?.french && <Screenshot page={group.french} side="French" scanId={scan.id} current={!isEnglishSide} />}
         </div>
       )}
 
-      <div className="grid grid-2">
-        <div className="card">
-          <h2>Issues ({issues.length})</h2>
-          {issues.length === 0 && <p className="muted">No issues on this page.</p>}
-          {issues.map((i) => (
+      <details className="tech" open={!!lang}>
+        <summary>Technical details for your developer</summary>
+        <div className="tech-body">
+          {techIssues.map((i) => (
             <div key={i.id} className={`issue sev-${i.severity}`}>
               <div className="row">
                 <SeverityBadge severity={i.severity} />
@@ -86,84 +148,75 @@ export default async function PageDetailView({
               </div>
               <div style={{ marginTop: 4 }}>{i.message}</div>
               {ISSUE_LABELS[i.code]?.fix && <div className="small muted" style={{ marginTop: 4 }}>Fix: {ISSUE_LABELS[i.code].fix}</div>}
-              {Array.isArray(i.details?.examples) && (
-                <ul>{i.details.examples.map((e: string, k: number) => <li key={k}>{e}</li>)}</ul>
-              )}
-              {Array.isArray(i.details?.urls) && (
-                <ul>{i.details.urls.map((e: string, k: number) => <li key={k}>{e}</li>)}</ul>
-              )}
+              {Array.isArray(i.details?.urls) && <ul>{i.details.urls.map((e: string, k: number) => <li key={k}>{e}</li>)}</ul>}
             </div>
           ))}
-        </div>
-        <div className="card">
-          <h2>Screenshot</h2>
-          {page.has_screenshot ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img className="shot" src={`/api/screenshots/${page.id}`} alt={`Screenshot of ${page.url}`} />
-          ) : (
-            <p className="muted">No screenshot.</p>
-          )}
-        </div>
-      </div>
 
-      <div className="card">
-        <h2>hreflang ({page.hreflang?.length ?? 0})</h2>
-        {page.hreflang?.length ? (
+          {m && (
+            <div className="grid grid-4" style={{ margin: "16px 0" }}>
+              <Stat label="Detected language" value={<LangBadge lang={page.page_language} />} sub={<code>lang=&quot;{page.html_lang || "—"}&quot;</code>} />
+              <Stat label="French prominence" value={<FrShareBar share={m.frProminenceShare} />} sub="weighted by size, weight & position" />
+              <Stat label="French text share" value={<FrShareBar share={m.frCharShare} />} sub={`${m.frChars} FR / ${m.enChars} EN chars`} />
+              <Stat label="Largest text" value={`${m.maxFontFr || "–"} / ${m.maxFontEn || "–"}`} sub="px, French / English" />
+            </div>
+          )}
+
+          <h3>hreflang ({page.hreflang?.length ?? 0})</h3>
+          {page.hreflang?.length ? (
+            <div className="table-wrap">
+              <table>
+                <thead><tr><th>Code</th><th>URL</th></tr></thead>
+                <tbody>
+                  {page.hreflang.map((t, k) => (
+                    <tr key={k}><td><code>{t.hreflang}</code></td><td className="small">{t.href}</td></tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="muted">No hreflang tags.</p>
+          )}
+
+          <div className="row" style={{ margin: "18px 0 8px" }}>
+            <h3 style={{ margin: 0 }}>Text blocks by prominence</h3>
+            <span className="spacer" />
+            <div className="tabs" style={{ margin: 0, border: 0 }}>
+              {[["", "All"], ["fr", "French"], ["en", "English"], ["mixed", "Mixed"], ["unknown", "Unclear"]].map(([v, l]) => (
+                <Link key={v} href={v ? `?lang=${v}` : "?"} className={(lang ?? "") === v ? "active" : ""}>{l}</Link>
+              ))}
+            </div>
+          </div>
           <div className="table-wrap">
             <table>
-              <thead><tr><th>Code</th><th>URL</th></tr></thead>
+              <thead>
+                <tr><th>Lang</th><th>Text</th><th>Where</th><th className="num">Size</th><th className="num">Weight</th><th className="num">Prominence</th></tr>
+              </thead>
               <tbody>
-                {page.hreflang.map((t, k) => (
-                  <tr key={k}><td><code>{t.hreflang}</code></td><td className="small">{t.href}</td></tr>
+                {blocks.slice(0, 200).map((b, k) => (
+                  <tr key={k}>
+                    <td><LangBadge lang={b.lang} /></td>
+                    <td style={{ maxWidth: 480 }}>{b.text.length > 160 ? b.text.slice(0, 160) + "…" : b.text}</td>
+                    <td className="small muted">
+                      {b.kind !== "text" ? `${b.kind} · ` : ""}{b.role}{b.inViewport ? " · above fold" : ""}
+                    </td>
+                    <td className="num">{b.fontSize ? `${Math.round(b.fontSize * 10) / 10}px` : "–"}</td>
+                    <td className="num">{b.fontWeight || "–"}</td>
+                    <td className="num">{Math.round(b.prominence)}</td>
+                  </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        ) : (
-          <p className="muted">No hreflang tags.</p>
-        )}
-      </div>
+          {blocks.length === 0 && <p className="muted">No blocks.</p>}
 
-      <div className="card">
-        <div className="row" style={{ marginBottom: 12 }}>
-          <h2 style={{ margin: 0 }}>Text blocks by prominence</h2>
-          <span className="spacer" />
-          <div className="tabs" style={{ margin: 0, border: 0 }}>
-            {[["", "All"], ["fr", "French"], ["en", "English"], ["mixed", "Mixed"], ["unknown", "Unclear"]].map(([v, l]) => (
-              <Link key={v} href={v ? `?lang=${v}` : "?"} className={(lang ?? "") === v ? "active" : ""}>{l}</Link>
-            ))}
-          </div>
+          {page.console_errors && page.console_errors.length > 0 && (
+            <>
+              <h3>Console errors</h3>
+              <ul className="small">{page.console_errors.slice(0, 20).map((e, k) => <li key={k}><code>{e}</code></li>)}</ul>
+            </>
+          )}
         </div>
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr><th>Lang</th><th>Text</th><th>Where</th><th className="num">Size</th><th className="num">Weight</th><th className="num">Prominence</th></tr>
-            </thead>
-            <tbody>
-              {blocks.slice(0, 200).map((b, k) => (
-                <tr key={k}>
-                  <td><LangBadge lang={b.lang} /></td>
-                  <td style={{ maxWidth: 480 }}>{b.text.length > 160 ? b.text.slice(0, 160) + "…" : b.text}</td>
-                  <td className="small muted">
-                    {b.kind !== "text" ? `${b.kind} · ` : ""}{b.role}{b.inViewport ? " · above fold" : ""}
-                  </td>
-                  <td className="num">{b.fontSize ? `${Math.round(b.fontSize * 10) / 10}px` : "–"}</td>
-                  <td className="num">{b.fontWeight || "–"}</td>
-                  <td className="num">{Math.round(b.prominence)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {blocks.length === 0 && <p className="muted">No blocks.</p>}
-      </div>
-
-      {page.console_errors && page.console_errors.length > 0 && (
-        <div className="card">
-          <h2>Console errors</h2>
-          <ul className="small">{page.console_errors.slice(0, 20).map((e, k) => <li key={k}><code>{e}</code></li>)}</ul>
-        </div>
-      )}
+      </details>
     </>
   );
 }

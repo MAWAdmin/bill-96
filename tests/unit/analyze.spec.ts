@@ -3,6 +3,7 @@ import { analyzePage } from "../../src/lib/scanner/analyze";
 import type { Extraction, RawBlock } from "../../src/lib/scanner/extract";
 import {
   checkHreflangTags,
+  frenchAlternate,
   hasFrenchAlternate,
   normalizeUrl,
   parseHreflangFromHtml,
@@ -132,6 +133,15 @@ test.describe("hreflang", () => {
     expect(tags[0].href).toBe("https://s.com/fr/p?a=1&b=2");
     expect(hasFrenchAlternate(tags, "https://s.com/en/p")).toBe(true);
     expect(checkHreflangTags(tags, "https://s.com/en/p?utm=x", "https://s.com/en/p").map((i) => i.code)).not.toContain("HREFLANG_NO_SELF");
+  });
+
+  test("frenchAlternate prefers fr-CA, then fr, and never returns the page itself", () => {
+    const tag = (hreflang: string, href: string) => ({ hreflang, href, raw: href });
+    const tags = [tag("fr", "https://s.com/fr/p"), tag("fr-CA", "https://s.com/ca-fr/p/"), tag("en-CA", "https://s.com/p")];
+    expect(frenchAlternate(tags, "https://s.com/p")).toBe("https://s.com/ca-fr/p");
+    expect(frenchAlternate([tag("fr-FR", "https://s.com/fr-fr/p"), tag("fr", "https://s.com/fr/p")], "https://s.com/p")).toBe("https://s.com/fr/p");
+    expect(frenchAlternate([tag("fr-CA", "https://s.com/fr/p")], "https://s.com/fr/p/")).toBeNull();
+    expect(frenchAlternate([tag("en", "https://s.com/p")], "https://s.com/p")).toBeNull();
   });
 
   test("flags missing French alternate", () => {

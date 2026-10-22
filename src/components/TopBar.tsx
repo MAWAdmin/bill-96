@@ -2,7 +2,7 @@ import Link from "next/link";
 import { logout } from "@/app/actions";
 import type { User } from "@/lib/auth";
 
-export function TopBar({ user }: { user: User | null }) {
+export function TopBar({ user, toReview = 0 }: { user: User | null; toReview?: number }) {
   return (
     <header className="topbar">
       <div className="topbar-inner">
@@ -13,7 +13,10 @@ export function TopBar({ user }: { user: User | null }) {
           <>
             <nav className="nav">
               <Link href="/dashboard">Sites</Link>
-              <Link href="/translations">Translations</Link>
+              <Link href="/translations">
+                Translations
+                {toReview > 0 && <span className="nav-count" aria-label={`${toReview} to review`}>{toReview}</span>}
+              </Link>
             </nav>
             <div className="user">
               <span className="small">{user.name}</span>

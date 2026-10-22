@@ -42,7 +42,11 @@ export const ISSUE_LABELS: Record<string, { label: string; severity: Severity; f
     severity: "info",
     fix: "Nothing to do here; make sure the French version is scanned too.",
   },
-  HTML_LANG_MISSING: { label: "Missing <html lang>", severity: "low", fix: 'Set <html lang="fr-CA"> (or "fr") on French pages.' },
+  HTML_LANG_MISSING: {
+    label: "Missing <html lang>",
+    severity: "low",
+    fix: 'Add a lang attribute to the <html> tag: lang="fr-CA" on French pages, lang="en-CA" on English pages.',
+  },
   HTML_LANG_MISMATCH: { label: "<html lang> mismatch", severity: "low", fix: "Make the lang attribute match the page's actual language." },
   HREFLANG_MISSING: { label: "No hreflang tags", severity: "low", fix: "Add <link rel=alternate hreflang> tags for each language version and x-default." },
   HREFLANG_NO_SELF: { label: "hreflang missing self-reference", severity: "low", fix: "Include the page itself in its hreflang set." },

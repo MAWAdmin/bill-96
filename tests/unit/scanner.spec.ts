@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { scanPage, closeBrowser } from "../../src/lib/scanner/scanPage";
 import { discoverUrls } from "../../src/lib/scanner/discover";
+import { checkReciprocity } from "../../src/lib/scanner/hreflang";
 import { assertScannableUrl } from "../../src/lib/net";
 
 // Real browser scans of the fixture storefront (tests/fixtures/site).
@@ -55,6 +56,16 @@ test("clean French page scores 100", async () => {
   const r = await scanPage(`${ORIGIN}/fr/good.html`, { screenshot: false });
   expect(r.issues).toEqual([]);
   expect(r.score).toBe(100);
+  // The page has a video; the scanner blocks it, and that must not count as the site's error.
+  expect(r.consoleErrors).toEqual([]);
+});
+
+test("alternates the store refuses to serve aren't reported as broken", async () => {
+  const tag = (href: string) => ({ hreflang: "fr-CA", href, raw: href });
+  const self = `${ORIGIN}/en/product.html`;
+  expect(await checkReciprocity([tag(`${ORIGIN}/blocked.html`)], self, new Map())).toEqual([]);
+  const missing = await checkReciprocity([tag(`${ORIGIN}/nope.html`)], self, new Map());
+  expect(missing.map((i) => i.code)).toEqual(["HREFLANG_BROKEN_ALTERNATE"]);
 });
 
 test("sitemap discovery", async () => {

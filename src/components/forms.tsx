@@ -98,3 +98,21 @@ export function ConfirmButton({ label, confirmLabel, className = "btn btn-danger
     </span>
   );
 }
+
+/** One-click whole-site scan with the site's default page budget. */
+export function CheckNowButton({
+  action,
+  children = "Check now",
+  className = "btn btn-primary",
+}: {
+  action: (state: FormState, fd: FormData) => Promise<FormState>;
+  children?: ReactNode;
+  className?: string;
+}) {
+  return (
+    <ActionForm action={action}>
+      <input type="hidden" name="mode" value="sitemap" />
+      <SubmitButton className={className} pendingText="Starting…">{children}</SubmitButton>
+    </ActionForm>
+  );
+}

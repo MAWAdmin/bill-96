@@ -22,6 +22,12 @@ http
       );
       return;
     }
+    // Mimics storefront bot protection refusing a plain (non-browser) request.
+    if (url.pathname === "/blocked.html") {
+      res.writeHead(429, { "content-type": "text/plain" });
+      res.end("Too many requests");
+      return;
+    }
     const rel = url.pathname === "/" ? "/index.html" : url.pathname;
     const file = path.join(root, path.normalize(rel));
     if (!file.startsWith(root) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {

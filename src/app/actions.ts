@@ -211,7 +211,8 @@ export async function saveTranslation(
       [itemId]
     );
   }
-  revalidatePath("/translations");
+  // No revalidatePath: the row/card updates itself, and reloading the list
+  // here would pull an approved row out from under the reviewer.
   return { ok: "Saved." };
 }
 

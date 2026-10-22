@@ -5,7 +5,10 @@ import { SCAN_CONCURRENCY, SCREENSHOT_DIR } from "./config";
 import { json, query, queryOne } from "./db";
 import { sha256 } from "./crypto";
 import { discoverUrls } from "./scanner/discover";
+import { frenchAlternate, normalizeUrl } from "./scanner/hreflang";
 import { scanPage, type PageResult } from "./scanner/scanPage";
+import { assertScannableUrl } from "./net";
+import { loadReadiness } from "./results";
 import { SEVERITY_ORDER } from "./scanner/types";
 import { getConnector, openConfig } from "./connectors";
 import { draftTranslations } from "./translate";
@@ -88,6 +91,21 @@ async function runScan(scanId: string) {
 
   const reciprocityCache = new Map<string, Promise<any>>();
   let next = 0;
+  // English pages that link a French version get that French page checked
+  // right after them, so every page is judged on its French side. Twins
+  // don't add further twins.
+  const queued = new Set(urls.map(normalizeUrl));
+  const twins = new Set<string>();
+  const queueFrenchTwin = async (url: string, result: PageResult) => {
+    if (twins.has(url) || !result.issues.some((i) => i.code === "ENGLISH_PAGE_WITH_FRENCH_VERSION")) return;
+    const twin = frenchAlternate(result.hreflang, result.finalUrl || url);
+    if (!twin || queued.has(twin) || !(await assertScannableUrl(twin).catch(() => null))) return;
+    queued.add(twin);
+    twins.add(twin);
+    urls.splice(next, 0, twin);
+    await query(`UPDATE scans SET pages_total = pages_total + 1 WHERE id = $1`, [scanId]);
+  };
+
   const worker = async () => {
     while (next < urls.length) {
       if (await isCancelled(scanId)) return;
@@ -97,8 +115,10 @@ async function runScan(scanId: string) {
         await query(`UPDATE scans SET pages_total = pages_total - 1 WHERE id = $1`, [scanId]);
         continue;
       }
+      if (result.finalUrl) queued.add(normalizeUrl(result.finalUrl));
       await savePage(scanId, site, result);
       await query(`UPDATE scans SET pages_done = pages_done + 1 WHERE id = $1`, [scanId]);
+      await queueFrenchTwin(url, result);
     }
   };
   await Promise.all(Array.from({ length: Math.min(SCAN_CONCURRENCY, urls.length || 1) }, worker));
@@ -175,6 +195,8 @@ export interface ScanSummary {
   byCode: Record<string, number>;
   byLanguage: Record<string, number>;
   translationCandidates: number;
+  /** French-ready share of the store's pages (see lib/readiness); absent on older scans. */
+  readiness?: { percent: number | null; counts: Record<string, number> };
 }
 
 async function summarize(scanId: string): Promise<ScanSummary> {
@@ -196,6 +218,7 @@ async function summarize(scanId: string): Promise<ScanSummary> {
   const byLanguage: Record<string, number> = {};
   for (const p of pages) byLanguage[p.page_language ?? "failed"] = (byLanguage[p.page_language ?? "failed"] ?? 0) + 1;
   const score = pages.length ? Math.round(pages.reduce((n, p) => n + (p.score ?? 0), 0) / pages.length) : 0;
+  const readiness = await loadReadiness(scanId);
   return {
     score,
     pages: pages.length,
@@ -204,6 +227,7 @@ async function summarize(scanId: string): Promise<ScanSummary> {
     byCode,
     byLanguage,
     translationCandidates: Number(cand?.n ?? 0),
+    readiness: { percent: readiness.percent, counts: readiness.counts },
   };
 }
 

@@ -197,7 +197,11 @@ export function analyzePage(ex: Extraction, hasFrenchAlternate: boolean): PageAn
   }
 
   if (!htmlLang) {
-    issues.push({ code: "HTML_LANG_MISSING", severity: "low", message: 'The <html> element has no lang attribute (e.g. lang="fr-CA").' });
+    issues.push({
+      code: "HTML_LANG_MISSING",
+      severity: "low",
+      message: 'The <html> element has no lang attribute (lang="fr-CA" on French pages, lang="en-CA" on English pages).',
+    });
   } else if ((language === "fr" && !declaredFr) || (language === "en" && declaredFr)) {
     issues.push({
       code: "HTML_LANG_MISMATCH",

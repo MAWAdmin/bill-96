@@ -18,7 +18,7 @@ export interface TranslationRowData {
   error: string | null;
 }
 
-const KIND_LABEL: Record<string, string> = {
+export const KIND_LABEL: Record<string, string> = {
   text: "Text",
   alt: "Image alt",
   placeholder: "Placeholder",
@@ -26,6 +26,8 @@ const KIND_LABEL: Record<string, string> = {
   aria: "Aria label",
   meta: "Title/meta",
 };
+
+const STATUS_LABEL: Record<string, string> = { pending: "needs French", rejected: "not needed" };
 
 export function TranslationRow({ item }: { item: TranslationRowData }) {
   const [status, setStatus] = useState(item.status);
@@ -49,7 +51,7 @@ export function TranslationRow({ item }: { item: TranslationRowData }) {
     <div className="tr-item" data-testid="translation-item">
       <div>
         <div className="row small muted" style={{ marginBottom: 4 }}>
-          <StatusBadge status={status} />
+          <StatusBadge status={status} label={STATUS_LABEL[status]} />
           <span>{KIND_LABEL[item.kind] ?? item.kind}</span>
           {item.context && <span>· {item.context}</span>}
           {item.occurrences > 1 && <span>· {item.occurrences} pages</span>}
@@ -81,7 +83,7 @@ export function TranslationRow({ item }: { item: TranslationRowData }) {
             <button className="btn btn-sm btn-primary" disabled={pending || !text.trim()} onClick={() => act("approve")}>Approve</button>
             <button className="btn btn-sm" disabled={pending} onClick={() => act("save")}>Save draft</button>
             {status !== "rejected" ? (
-              <button className="btn btn-sm" disabled={pending} onClick={() => act("reject")} title="Not French-relevant (brand name, code, etc.)">Ignore</button>
+              <button className="btn btn-sm" disabled={pending} onClick={() => act("reject")} title="Brand names, codes and other text that stays as is">Not needed</button>
             ) : (
               <button className="btn btn-sm" disabled={pending} onClick={() => act("reopen")}>Restore</button>
             )}

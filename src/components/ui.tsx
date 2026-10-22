@@ -1,4 +1,6 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
+import Link from "next/link";
+import type { PageGroup, PageStatus, Readiness } from "@/lib/readiness";
 
 export function ScoreBadge({ score }: { score: number | null | undefined }) {
   if (score === null || score === undefined) return <span className="score score-none">–</span>;
@@ -37,8 +39,8 @@ const STATUS_CLS: Record<string, string> = {
   published: "b-fr",
 };
 
-export function StatusBadge({ status }: { status: string }) {
-  return <span className={`badge ${STATUS_CLS[status] ?? "b-neutral"}`}>{status}</span>;
+export function StatusBadge({ status, label }: { status: string; label?: string }) {
+  return <span className={`badge ${STATUS_CLS[status] ?? "b-neutral"}`}>{label ?? status}</span>;
 }
 
 export function FrShareBar({ share }: { share: number | null | undefined }) {
@@ -77,4 +79,107 @@ export function Disclaimer() {
       Charter of the French language (Bill 96). AI translations are drafts for human review.
     </p>
   );
+}
+
+/** Big percentage ring for French readiness. */
+export function ReadinessRing({ percent, small }: { percent: number | null | undefined; small?: boolean }) {
+  const has = percent !== null && percent !== undefined;
+  const p = has ? percent : 0;
+  const color = p >= 85 ? "var(--ok)" : p >= 50 ? "var(--warn)" : "var(--bad)";
+  return (
+    <div
+      className={`ring${small ? " ring-sm" : ""}${has ? "" : " empty-ring"}`}
+      style={{ "--p": p, "--c": color } as CSSProperties}
+      role="img"
+      aria-label={has ? `${p}% French-ready` : "French readiness not known yet"}
+    >
+      <span>{has ? `${p}%` : "–"}</span>
+    </div>
+  );
+}
+
+export const STATUS_LABEL: Record<PageStatus, string> = {
+  ready: "French-ready",
+  leftovers: "English left",
+  missing: "No French version",
+  unchecked: "French not checked",
+  failed: "Couldn't load",
+  unclear: "Too little text",
+};
+
+export function StatusPill({ status }: { status: PageStatus }) {
+  return <span className={`pill pill-${status}`}>{STATUS_LABEL[status]}</span>;
+}
+
+/** Plain-language names for the problems a store owner fixes. */
+export const PROBLEM_LABEL: Record<string, string> = {
+  NO_FRENCH_VERSION: "Only in English",
+  UNTRANSLATED_TEXT: "English text",
+  UNTRANSLATED_ATTRIBUTES: "English image text or labels",
+  UNTRANSLATED_META: "English page title",
+  ENGLISH_MORE_PROMINENT: "English stands out more",
+  ENGLISH_LARGER_TEXT: "English text is bigger",
+  ENGLISH_DOMINATES_ABOVE_FOLD: "English shown first",
+};
+
+/** One row of the "pages we checked" list: an English page and its French version. */
+export function PairRow({ group, scanId }: { group: PageGroup; scanId: string }) {
+  const href = (id: string) => `/scans/${scanId}/pages/${id}`;
+  const main = group.french ?? group.english!;
+  return (
+    <div className="pair" data-testid="page-pair">
+      <div><StatusPill status={group.status} /></div>
+      <div style={{ minWidth: 0 }}>
+        <Link href={href(main.id)} className="pair-title url">{group.title}</Link>
+        {group.problems.length > 0 && (
+          <div className="problem-chips">
+            {group.problems.map((c) => <span key={c} className="problem-chip">{PROBLEM_LABEL[c] ?? c}</span>)}
+          </div>
+        )}
+      </div>
+      <div className="pair-links">
+        {group.english ? <Link className="lang-chip" href={href(group.english.id)} title={group.english.url}>EN</Link> : null}
+        {group.french ? (
+          <Link className="lang-chip" href={href(group.french.id)} title={group.french.url}>FR</Link>
+        ) : (
+          <span className="lang-chip none" title="No French version checked">FR</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** "▲ 12 points since Oct 20" against an earlier readiness percentage. */
+export function Delta({ now, before, since }: { now: number | null; before: number | null | undefined; since: Date | string | null }) {
+  if (now === null || before === null || before === undefined) return null;
+  const d = now - before;
+  const when = since ? ` since ${new Date(since).toLocaleDateString("en-CA", { month: "short", day: "numeric" })}` : "";
+  if (d === 0) return <span className="delta">No change{when}</span>;
+  return <span className={`delta ${d > 0 ? "up" : "down"}`}>{d > 0 ? "▲" : "▼"} {Math.abs(d)} points{when}</span>;
+}
+
+export const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+
+/** The one-sentence answer to "how French-ready is this store?". */
+export function readinessHeadline(r: Readiness): { title: string; lead: string } {
+  const unchecked = r.counts.unchecked
+    ? ` ${plural(r.counts.unchecked, "English page")} link${r.counts.unchecked === 1 ? "s" : ""} to French we haven't checked yet.`
+    : "";
+  if (r.percent === null) {
+    if (r.counts.unchecked) {
+      return {
+        title: "Your French pages haven't been checked yet",
+        lead: `We checked ${plural(r.counts.unchecked, "English page")}. ${r.counts.unchecked === 1 ? "It links" : "Each one links"} to a French version that this check didn't include. Check again to look at the French side.`,
+      };
+    }
+    return { title: "We couldn't judge the French yet", lead: "The pages we checked didn't load or had too little text to tell." };
+  }
+  if (r.percent === 100) {
+    const all = r.judged === 1 ? "The page we checked is" : `All ${r.judged} pages we checked are`;
+    return { title: "Your French looks great", lead: `${all} French-ready.${unchecked}` };
+  }
+  return {
+    title: `${r.counts.ready} of ${r.judged} ${r.judged === 1 ? "page is" : "pages are"} French-ready`,
+    lead: `Here's what's left, most important first.${unchecked}`,
+  };
 }
