@@ -134,7 +134,7 @@ export function analyzePage(ex: Extraction, hasFrenchAlternate: boolean, brands:
         code: "NO_FRENCH_VERSION",
         severity: "critical",
         message:
-          "Page content is in English and no French version is linked. Quebec-facing commercial content must be available in French.",
+          "Page content is in English and no French version is linked. Documents available to the public must be in French, whatever the medium (Charter s. 52).",
         details: { frCharShare: metrics.frCharShare },
       });
     }
@@ -146,7 +146,7 @@ export function analyzePage(ex: Extraction, hasFrenchAlternate: boolean, brands:
       issues.push({
         code: "ENGLISH_MORE_PROMINENT",
         severity: "high",
-        message: `English is visually more prominent than French (French prominence share ${pct(metrics.frProminenceShare)}). French must be at least as prominent.`,
+        message: `English is visually more prominent than French (French prominence share ${pct(metrics.frProminenceShare)}). French must be at least as prominent, and markedly predominant in advertising.`,
         details: { frProminence: metrics.frProminence, enProminence: metrics.enProminence },
       });
     }

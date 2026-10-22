@@ -60,7 +60,7 @@ export default async function SiteSettings({
               />
               <div className="hint">
                 One per line: <code>English =&gt; French</code>. A name on its own line stays as is and never counts as English. Only list
-                names that may legally stay in English, such as registered trademarks with no French version registered.
+                names that may legally stay in English, such as registered trademarks with no French version registered (Charter s. 58.1).
               </div>
             </div>
             <SubmitButton pendingText="Saving…">Save settings</SubmitButton>

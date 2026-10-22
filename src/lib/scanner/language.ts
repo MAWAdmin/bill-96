@@ -124,30 +124,26 @@ export function glossaryBrands(glossary: string | null | undefined): string[] {
     .filter(Boolean);
 }
 
-export interface EnglishName {
-  name: string;
-  /** Everyday English words in the name ("shop"), which may need French. */
-  genericWords: string[];
-}
-
 /**
  * Business and brand names that read as English. They aren't counted as
- * untranslated text, but a name in another language is allowed only if it is
- * a registered trademark, so the owner gets one reminder per name. Names in
- * `confirmed` (glossary brands the owner vouches for) are left out.
+ * untranslated text, but in advertising a name may stay only in another
+ * language if it is a registered trademark (Charter s. 58.1), or an English
+ * version of a French business name that is no more prominent than the French
+ * (ss. 63, 68), so the owner gets one reminder per name. Names in `confirmed`
+ * (glossary brands the owner vouches for) are left out.
  */
-export function englishNames(names: (string | null | undefined)[], confirmed: string[] = []): EnglishName[] {
+export function englishNames(names: (string | null | undefined)[], confirmed: string[] = []): string[] {
   const skip = new Set(confirmed.map((c) => c.normalize("NFC").trim().toLowerCase()));
   const seen = new Set<string>();
-  const out: EnglishName[] = [];
+  const out: string[] = [];
   for (const raw of names) {
     const name = (raw ?? "").normalize("NFC").trim();
     const key = name.toLowerCase();
     if (!name || seen.has(key) || skip.has(key)) continue;
     seen.add(key);
     const lang = detectLanguage(name).lang;
-    const genericWords = [...new Set(tokenize(name).filter((w) => EN_WORDS.has(w) && !FR_WORDS.has(w)))];
-    if (lang === "en" || lang === "mixed" || genericWords.length) out.push({ name, genericWords });
+    const hasEnglishWord = tokenize(name).some((w) => EN_WORDS.has(w) && !FR_WORDS.has(w));
+    if (lang === "en" || lang === "mixed" || hasEnglishWord) out.push(name);
   }
   return out;
 }

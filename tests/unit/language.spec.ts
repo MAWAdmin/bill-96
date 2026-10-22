@@ -63,5 +63,5 @@ test.describe("brand names", () => {
 
 test("English business names get one reminder; French, coined and confirmed names don't", () => {
   const names = ["Maple Shop", "maple shop", "Bijoutiers Paul Nudelman", "Pajar Canada", "Boutique Érable", null, "GlowRadiance Store"];
-  expect(englishNames(names, ["GlowRadiance Store"])).toEqual([{ name: "Maple Shop", genericWords: ["shop"] }]);
+  expect(englishNames(names, ["GlowRadiance Store"])).toEqual(["Maple Shop"]);
 });

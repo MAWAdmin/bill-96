@@ -5,37 +5,37 @@ export const ISSUE_LABELS: Record<string, { label: string; severity: Severity; f
   NO_FRENCH_VERSION: {
     label: "No French version",
     severity: "critical",
-    fix: "Publish a French version of this page (Shopify: enable French in Settings > Languages and translate with Translate & Adapt; WordPress: WPML/Polylang/TranslatePress) and link it with hreflang.",
+    fix: "Publish a French version of this page, available on terms at least as favourable as the English (Charter s. 52). Shopify: enable French in Settings > Languages and translate with Translate & Adapt; WordPress: WPML/Polylang/TranslatePress. Link the versions with hreflang.",
   },
   ENGLISH_MORE_PROMINENT: {
     label: "English more prominent than French",
     severity: "high",
-    fix: "Give French text at least the same size, weight and placement as English, or remove the English duplicate.",
+    fix: "French must be displayed at least as prominently as English (Charter s. 91), and in commercial advertising it must be markedly predominant (s. 58). Make the French bigger and more visible, or remove the English.",
   },
   ENGLISH_LARGER_TEXT: {
     label: "English text larger than French",
     severity: "medium",
-    fix: "Make the French heading/label at least as large as the English one.",
+    fix: "Make the French heading or label at least as large as the English one (Charter s. 91; in advertising, French must be markedly predominant, s. 58).",
   },
   ENGLISH_DOMINATES_ABOVE_FOLD: {
     label: "English dominates the first screen",
     severity: "medium",
-    fix: "Lead with French in the hero, header and announcement bar.",
+    fix: "Lead with French in the hero, header and announcement bar (Charter s. 58, 91).",
   },
   UNTRANSLATED_TEXT: {
     label: "English text on French page",
     severity: "high",
-    fix: "Translate the listed strings (see the Translations queue). Often theme/app strings missed by the translation app.",
+    fix: "Translate the listed strings (see Translations). The French version must be complete and understandable on its own (Charter s. 52, 91). These are often theme or app strings the translation app missed.",
   },
   UNTRANSLATED_ATTRIBUTES: {
     label: "English alt text / placeholders",
     severity: "medium",
-    fix: "Translate image alt text, input placeholders, and button labels.",
+    fix: "Translate image descriptions (alt text), form placeholders and button labels (Charter s. 52, 91).",
   },
   UNTRANSLATED_META: {
     label: "English page title / description",
     severity: "medium",
-    fix: "Translate the SEO title and meta description for the French page.",
+    fix: "Translate the page title and the description Google shows for the French page (Charter s. 52).",
   },
   ENGLISH_PAGE_WITH_FRENCH_VERSION: {
     label: "English page (French version linked)",

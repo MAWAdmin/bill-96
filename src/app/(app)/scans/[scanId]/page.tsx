@@ -76,7 +76,7 @@ export default async function ScanPage({ params }: { params: Promise<{ scanId: s
       icon: "↕",
       kind: "prominence",
       title: `Give French top billing on ${plural(prominence, "page")}`,
-      text: "English is bigger or shown first there. French has to be at least as prominent as English.",
+      text: "English is bigger or shown first there. French must be at least as prominent as English (Charter s. 91), and markedly predominant in advertising (s. 58).",
       action: <a className="btn" href="#pages">See pages</a>,
     });
   }
@@ -95,11 +95,11 @@ export default async function ScanPage({ params }: { params: Promise<{ scanId: s
     todos.push({
       icon: "™",
       kind: "other",
-      title: `Check that “${n.name}” may stay in English`,
+      title: `Check that “${n}” may stay in English`,
       text:
-        "We didn't count this name as English text. A name in another language is allowed only if it's a registered trademark with no French version registered." +
-        (n.genericWords.length ? ` Generic words in it (${n.genericWords.join(", ")}) may still need French.` : "") +
-        " If it's registered, add it to your glossary in Settings and we'll stop asking.",
+        "We didn't count this name as English text. In advertising, a name may appear only in English if it's a registered trademark with no French version registered (Charter s. 58.1). " +
+        "Otherwise your business name must be in French, and an English version can't be more prominent than the French (s. 63, 68). " +
+        "If it's a registered trademark, add it to your glossary in Settings and we'll stop asking.",
       action: <Link className="btn" href={`/sites/${scan.site_id}/settings`}>Settings</Link>,
     });
   }
