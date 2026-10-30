@@ -5,14 +5,18 @@ import { signup } from "@/app/actions";
 import { TopBar } from "@/components/TopBar";
 import { ActionForm, SubmitButton } from "@/components/forms";
 
-export default async function SignupPage() {
+export default async function SignupPage({ searchParams }: { searchParams: Promise<{ email?: string; from?: string }> }) {
   if (await getUser()) redirect("/dashboard");
+  const sp = await searchParams;
   return (
     <>
       <TopBar user={null} />
       <main className="auth-wrap">
         <div className="card narrow" style={{ width: "100%" }}>
           <h1>Create your account</h1>
+          {sp.from === "scan" && (
+            <p className="muted">Use the email you entered on your free scan and its results and English strings are added to your account.</p>
+          )}
           <ActionForm action={signup}>
             <div className="field">
               <label htmlFor="name">Name</label>
@@ -20,7 +24,7 @@ export default async function SignupPage() {
             </div>
             <div className="field">
               <label htmlFor="email">Email</label>
-              <input id="email" name="email" type="email" autoComplete="email" required />
+              <input id="email" name="email" type="email" autoComplete="email" defaultValue={sp.email ?? ""} required />
             </div>
             <div className="field">
               <label htmlFor="password">Password</label>

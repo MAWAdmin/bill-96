@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { CLAUDE_MODEL, translationProvider } from "./config";
+import { CLAUDE_MODEL, translationProvider, type TranslationProvider } from "./config";
 
 /**
  * Drafts fr-CA translations for human review. Drafts are never published
@@ -16,6 +16,8 @@ export interface TranslateItem {
 export interface TranslateOptions {
   siteName: string;
   glossary?: string;
+  /** Overrides the configured provider (the free scan falls back to "mock" without a key). */
+  provider?: TranslationProvider;
 }
 
 export interface TranslateResult {
@@ -58,7 +60,7 @@ const SCHEMA = {
 let client: Anthropic | null = null;
 
 export async function draftTranslations(items: TranslateItem[], opts: TranslateOptions): Promise<TranslateResult> {
-  const provider = translationProvider();
+  const provider = opts.provider ?? translationProvider();
   const drafts = new Map<string, string>();
   if (provider === "none") {
     return { drafts, provider, error: "No ANTHROPIC_API_KEY configured; enter translations manually or add a key." };

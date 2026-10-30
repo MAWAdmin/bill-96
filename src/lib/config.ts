@@ -7,6 +7,8 @@ export const ALLOW_SIGNUP = process.env.ALLOW_SIGNUP !== "0";
 export const BROWSER_CHANNEL = process.env.BROWSER_CHANNEL || "chrome";
 export const SCAN_CONCURRENCY = Math.max(1, Number(process.env.SCAN_CONCURRENCY) || 2);
 export const CLAUDE_MODEL = process.env.CLAUDE_MODEL || "claude-sonnet-5-5";
+/** Free scans (/scan) allowed per IP address per hour. */
+export const PUBLIC_SCAN_IP_LIMIT = Math.max(1, Number(process.env.PUBLIC_SCAN_IP_LIMIT) || 5);
 
 export type TranslationProvider = "claude" | "mock" | "none";
 

@@ -192,3 +192,8 @@ td.num, th.num { white-space: nowrap; }
   .brand-name, .user .small { display: none; }
   .nav { gap: 0; }
 }
+
+/* Free scan (/scan) */
+.scan-form .row input { flex: 1; min-width: 220px; width: auto; }
+.checks { list-style: none; padding: 0; margin: 20px auto 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px 20px; text-align: left; color: var(--muted); }
+.checks li::before { content: "✓"; color: var(--accent); font-weight: 700; margin-right: 8px; }

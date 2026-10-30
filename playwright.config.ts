@@ -36,6 +36,9 @@ export default defineConfig({
         TRANSLATION_PROVIDER: "mock",
         DATABASE_URL: "",
         SCAN_CONCURRENCY: "3",
+        // Free-scan leads go to the fake HubSpot in the fixture server.
+        HUBSPOT_API_KEY: "test-hubspot-token",
+        HUBSPOT_API_BASE: "http://127.0.0.1:4100/hubspot",
       },
     },
   ],
