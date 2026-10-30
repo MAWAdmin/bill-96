@@ -87,6 +87,28 @@ test("one free scan per domain per 24 hours, and public API guards", async ({ pa
   expect((await page.goto(`/scan/${"x".repeat(43)}`))?.status()).toBe(404);
 });
 
+test("a site that can't be loaded gets a clear message and can be scanned again", async ({ page, request }) => {
+  // Nothing listens on this port, so discovery finds nothing and the homepage fails to load.
+  const url = "http://127.0.0.1:4199/";
+  await page.goto("/scan");
+  await page.getByLabel("Store URL").fill(url);
+  await page.getByRole("button", { name: "Scan my site" }).click();
+  await expect(page).toHaveURL(/\/scan\/[0-9a-f-]{36}\?lang=en$/);
+  const id = new URL(page.url()).pathname.split("/").pop()!;
+
+  const card = page.getByTestId("scan-unreachable");
+  await expect(card).toBeVisible({ timeout: 90_000 });
+  await expect(card).toContainText("We couldn't load this site");
+  await expect(card).toContainText("ERR_CONNECTION_REFUSED");
+  await expect(page.getByTestId("site-score")).toHaveCount(0);
+  await expect(page.getByText("We didn't find English text")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Show full results" })).toHaveCount(0);
+
+  // Nothing to unlock, and the domain's free scan isn't used up.
+  expect((await request.post(`/api/public-scan/${id}/unlock`, { data: { email: "someone@example.com" } })).status()).toBe(409);
+  expect((await request.post("/api/public-scan", { data: { url } })).status()).toBe(202);
+});
+
 test("email unlock → share link + HubSpot contact → signup → strings in the queue", async ({ page, request, browser }) => {
   await page.goto(scanUrl);
   await page.getByLabel("Email").fill(EMAIL);

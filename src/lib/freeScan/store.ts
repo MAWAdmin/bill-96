@@ -40,8 +40,10 @@ export type StartResult =
 /** `homepage` must already have passed the SSRF guard. */
 export async function startPublicScan(homepage: string): Promise<StartResult> {
   const domain = domainKey(homepage);
+  // Failed scans, and scans where no page loaded (score NULL), don't use up the domain's free scan.
   const last = await queryOne<{ id: string; created_at: Date }>(
-    `SELECT id, created_at FROM scans WHERE source = 'public' AND domain = $1 AND status <> 'failed'
+    `SELECT id, created_at FROM scans WHERE source = 'public' AND domain = $1
+       AND (status IN ('queued','running') OR (status = 'completed' AND score IS NOT NULL))
      ORDER BY created_at DESC LIMIT 1`,
     [domain]
   );
@@ -92,6 +94,8 @@ export interface PublicResults {
   /** Issues that need fixing (everything but "info"), counted once per page. */
   gaps: number;
   strings: PublicString[];
+  /** Pages the browser couldn't load. They say nothing about French, so they aren't gaps. */
+  failed: { pages: number; error: string | null };
 }
 
 export async function loadPublicResults(scanId: string): Promise<PublicResults> {
@@ -99,16 +103,25 @@ export async function loadPublicResults(scanId: string): Promise<PublicResults> 
     `SELECT code,
             (array_agg(severity ORDER BY array_position(ARRAY['critical','high','medium','low','info'], severity)))[1] AS severity,
             count(DISTINCT page_id) AS pages
-     FROM issues WHERE scan_id = $1 GROUP BY code`,
+     FROM issues WHERE scan_id = $1 AND code <> 'LOAD_FAILED' GROUP BY code`,
     [scanId]
   );
+  const failed = (await queryOne<{ n: string; error: string | null }>(
+    `SELECT count(*) AS n, (array_agg(error ORDER BY created_at))[1] AS error FROM pages WHERE scan_id = $1 AND error IS NOT NULL`,
+    [scanId]
+  ))!;
   const issues = rankIssues(rows.map((r) => ({ code: r.code, severity: r.severity, pages: Number(r.pages) })));
   const strings = await query<PublicString>(
     `SELECT id, source_text, kind, draft_text, provider FROM public_scan_strings WHERE scan_id = $1
      ORDER BY ${PUBLIC_STRING_ORDER} LIMIT ${PUBLIC_DRAFT_COUNT}`,
     [scanId]
   );
-  return { issues, gaps: issues.filter((i) => i.severity !== "info").reduce((n, i) => n + i.pages, 0), strings };
+  return {
+    issues,
+    gaps: issues.filter((i) => i.severity !== "info").reduce((n, i) => n + i.pages, 0),
+    strings,
+    failed: { pages: Number(failed.n), error: failed.error },
+  };
 }
 
 export type UnlockResult = { ok: true; token: string; expiresAt: Date } | { ok: false; reason: "not_found" | "not_ready" };
@@ -125,7 +138,7 @@ export async function unlockPublicScan(scanId: string, email: string, name: stri
        email = COALESCE(email, $2),
        share_token = CASE WHEN share_expires_at > now() THEN share_token ELSE $3 END,
        share_expires_at = CASE WHEN share_expires_at > now() THEN share_expires_at ELSE $4::timestamptz END
-     WHERE id = $1 AND source = 'public' AND status = 'completed'
+     WHERE id = $1 AND source = 'public' AND status = 'completed' AND score IS NOT NULL
      RETURNING share_token, share_expires_at, input_urls, score`,
     [scanId, email, randomToken(), expires.toISOString()]
   );

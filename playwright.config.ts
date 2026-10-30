@@ -39,6 +39,7 @@ export default defineConfig({
         // Free-scan leads go to the fake HubSpot in the fixture server.
         HUBSPOT_API_KEY: "test-hubspot-token",
         HUBSPOT_API_BASE: "http://127.0.0.1:4100/hubspot",
+        PUBLIC_SCAN_IP_LIMIT: "20",
       },
     },
   ],

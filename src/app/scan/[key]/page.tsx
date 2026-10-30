@@ -80,6 +80,22 @@ export default async function FreeScanResults({
   }
 
   const res = await loadPublicResults(scan.id);
+  if (scan.score === null) {
+    // Nothing loaded: no score to show, nothing to unlock, and the domain can be scanned again.
+    return shell(
+      domain,
+      <div className="card" data-testid="scan-unreachable">
+        <h2>{r.noPages}</h2>
+        <p className="muted">{r.noPagesHint}</p>
+        {res.failed.error && (
+          <p className="small">
+            {r.reason} <code>{clip(res.failed.error, 200)}</code>
+          </p>
+        )}
+        <Link className="btn btn-primary" href={`/scan?lang=${lang}`}>{r.tryAgain}</Link>
+      </div>
+    );
+  }
   const summary = scan.summary ?? {};
   const band = summary.riskBand ?? null;
   const totalStrings = summary.translationCandidates ?? 0;
@@ -90,7 +106,6 @@ export default async function FreeScanResults({
     domain,
     <>
       {sp.reused && <div className="alert alert-info">{r.reused}</div>}
-      {scan.score === null && <div className="alert alert-error">{r.noPages}</div>}
 
       <div className="grid grid-4" style={{ marginBottom: 20 }}>
         <Stat
@@ -103,7 +118,11 @@ export default async function FreeScanResults({
             </>
           }
         />
-        <Stat label={r.pagesChecked} value={summary.pages ?? 0} />
+        <Stat
+          label={r.pagesChecked}
+          value={(summary.pages ?? 0) - res.failed.pages}
+          sub={res.failed.pages > 0 ? r.pagesFailed(res.failed.pages) : undefined}
+        />
         <Stat label={r.gapsFound} value={res.gaps} />
         <Stat
           label={r.englishStrings}
