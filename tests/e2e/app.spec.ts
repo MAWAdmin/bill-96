@@ -98,11 +98,13 @@ test("translation queue: review, edit, approve, export, publish", async ({ page 
 
   await box.fill("Livraison gratuite sur toutes les commandes de plus de 50 $ !");
   await item.getByRole("button", { name: "Approve" }).click();
-  await expect(item.getByText("approved", { exact: true })).toBeVisible();
+  // The action revalidates the queue, which can drop the row from "To review"
+  // before its "approved" badge is seen; the tab counts are the stable signal.
+  await expect(page.getByRole("link", { name: /^Approved \(1\)$/ })).toBeVisible();
 
   const ignore = page.getByTestId("translation-item").filter({ hasText: /^.*Subscribe/ }).first();
   await ignore.getByRole("button", { name: "Ignore" }).click();
-  await expect(ignore.getByText("rejected", { exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: /^Rejected \(1\)$/ })).toBeVisible();
 
   await page.reload();
   await page.getByRole("link", { name: /^Approved \(1\)$/ }).click();

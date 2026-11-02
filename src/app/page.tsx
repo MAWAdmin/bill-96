@@ -15,10 +15,11 @@ export default async function Home() {
           <p>
             Scan your Shopify, WordPress or any website for Bill 96 French-language gaps: English-only pages, English that
             outweighs French, untranslated buttons and alt text, broken hreflang. Then review AI-drafted Quebec French
-            translations before you publish.
+            translations before you publish. Try it free on your homepage and 10 more pages, no account needed.
           </p>
           <div className="row" style={{ justifyContent: "center", marginTop: 20 }}>
-            <Link className="btn btn-primary" href="/signup">Create an account</Link>
+            <Link className="btn btn-primary" href="/scan">Run a free scan</Link>
+            <Link className="btn" href="/signup">Create an account</Link>
             <Link className="btn" href="/login">Log in</Link>
           </div>
           <div className="features">

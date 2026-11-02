@@ -25,6 +25,7 @@ export function TopBar({ user }: { user: User | null }) {
         ) : (
           <>
             <div className="spacer" />
+            <Link href="/scan" className="btn btn-sm">Free scan</Link>
             <Link href="/login" className="btn btn-sm">Log in</Link>
             <Link href="/signup" className="btn btn-sm btn-primary">Sign up</Link>
           </>

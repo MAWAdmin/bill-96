@@ -98,3 +98,34 @@ CREATE TABLE IF NOT EXISTS translation_items (
   UNIQUE (site_id, source_hash, kind)
 );
 CREATE INDEX IF NOT EXISTS translation_site_status_idx ON translation_items(site_id, status);
+
+-- Free scan funnel (/scan). Public scans have no site until someone signs up
+-- with the scan's email, and owner_id stays NULL until then. These statements are
+-- idempotent, so existing databases pick them up on the next start.
+ALTER TABLE scans ALTER COLUMN site_id DROP NOT NULL;
+ALTER TABLE scans ADD COLUMN IF NOT EXISTS source text NOT NULL DEFAULT 'app';
+ALTER TABLE scans ADD COLUMN IF NOT EXISTS owner_id uuid REFERENCES users(id) ON DELETE CASCADE;
+ALTER TABLE scans ADD COLUMN IF NOT EXISTS domain text;
+ALTER TABLE scans ADD COLUMN IF NOT EXISTS email text;
+ALTER TABLE scans ADD COLUMN IF NOT EXISTS share_token text;
+ALTER TABLE scans ADD COLUMN IF NOT EXISTS share_expires_at timestamptz;
+CREATE INDEX IF NOT EXISTS scans_public_domain_idx ON scans(domain, created_at DESC) WHERE source = 'public';
+CREATE INDEX IF NOT EXISTS scans_public_email_idx ON scans(email) WHERE email IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS scans_share_token_idx ON scans(share_token);
+
+-- English strings found by a public scan. Copied into translation_items when
+-- the scan is claimed at signup.
+CREATE TABLE IF NOT EXISTS public_scan_strings (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  scan_id uuid NOT NULL REFERENCES scans(id) ON DELETE CASCADE,
+  source_hash text NOT NULL,
+  source_text text NOT NULL,
+  kind text NOT NULL DEFAULT 'text',
+  context text,
+  first_seen_url text,
+  occurrences integer NOT NULL DEFAULT 1,
+  draft_text text,
+  provider text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (scan_id, source_hash, kind)
+);

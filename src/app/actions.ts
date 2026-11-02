@@ -19,6 +19,7 @@ import { isUuid, loadScan, loadSite, ownsItem } from "@/lib/access";
 import { getConnector, openConfig, sealConfig, PLATFORMS } from "@/lib/connectors";
 import { NotImplementedError } from "@/lib/connectors/types";
 import { enqueueScan, generateDrafts } from "@/lib/jobs";
+import { claimPublicScans } from "@/lib/freeScan/store";
 
 export interface FormState {
   error?: string;
@@ -43,6 +44,8 @@ export async function signup(_: FormState, fd: FormData): Promise<FormState> {
     `INSERT INTO users (email, name, password_hash) VALUES ($1, $2, $3) RETURNING id`,
     [email, name, hashPassword(password)]
   );
+  // Free scans unlocked with this email become sites with filled translation queues.
+  await claimPublicScans(user!.id, email).catch((e) => console.error("[free-scan] Could not attach free scans at signup:", e));
   await createSession(user!.id);
   redirect("/dashboard");
 }
